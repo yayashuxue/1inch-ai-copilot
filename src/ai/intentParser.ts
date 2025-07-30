@@ -1,9 +1,10 @@
 import OpenAI from 'openai';
 import { Draft, TradingMode, ChainId, IntentParsingError, COMMON_TOKENS } from '../types';
 
-const openai = new OpenAI({
+// Initialize OpenAI client only if API key is available
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-});
+}) : null;
 
 // Token symbol mapping for common variants
 const TOKEN_ALIASES: Record<string, string> = {
@@ -23,6 +24,7 @@ const CHAIN_ALIASES: Record<string, ChainId> = {
   'mainnet': ChainId.ETHEREUM,
   'ethereum': ChainId.ETHEREUM,
   'eth': ChainId.ETHEREUM,
+  'base': ChainId.BASE,
   'polygon': ChainId.POLYGON,
   'matic': ChainId.POLYGON,
   'arbitrum': ChainId.ARBITRUM,
@@ -106,6 +108,10 @@ function parseWithRegex(text: string): Draft | null {
  * AI-powered parsing using OpenAI for complex commands
  */
 async function parseWithAI(text: string): Promise<Draft> {
+  if (!openai) {
+    throw new IntentParsingError('OpenAI API key not configured - cannot parse complex commands', text);
+  }
+
   const systemPrompt = `You are an expert DeFi trading assistant. Parse natural language trading commands into structured parameters.
 
 Available trading modes:

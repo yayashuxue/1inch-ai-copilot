@@ -296,6 +296,7 @@ export function formatPriceChange(change: number): string {
 export function getChainName(chainId: ChainId): string {
   const chainNames = {
     [ChainId.ETHEREUM]: 'Ethereum',
+    [ChainId.BASE]: 'Base',
     [ChainId.POLYGON]: 'Polygon',
     [ChainId.ARBITRUM]: 'Arbitrum',
     [ChainId.OPTIMISM]: 'Optimism',

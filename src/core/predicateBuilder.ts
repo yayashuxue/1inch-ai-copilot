@@ -258,7 +258,7 @@ export function decodePredicate(predicateData: string): any {
  * Estimate gas cost for predicate execution
  */
 export function estimatePredicateGas(predicateType: string): number {
-  const gasEstimates = {
+  const gasEstimates: Record<string, number> = {
     'price_gte': 150000,
     'price_lte': 150000,
     'time_after': 50000,

@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+
+// Check if we're in development or production
+const isDev = process.env.NODE_ENV === 'development' || require('fs').existsSync('./src');
+
+if (isDev) {
+  // Development: use ts-node to run TypeScript directly
+  require('ts-node').register({
+    transpileOnly: true,
+    compilerOptions: {
+      module: 'commonjs'
+    }
+  });
+  require('./src/index.ts');
+} else {
+  // Production: use compiled JavaScript
+  require('./dist/index.js');
+}
