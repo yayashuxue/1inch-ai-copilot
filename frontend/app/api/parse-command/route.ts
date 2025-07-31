@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { parse } from '../../../lib/intentParser'
 import { executeIntent, validateDraft } from '../../../lib/orderBuilder'
 import { ChainId } from '../../../lib/types'

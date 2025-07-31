@@ -1,15 +1,14 @@
-// Temporary fallback to avoid SSR issues with Privy during build
+// Complete fallback - no Privy imports to avoid SSR issues
 export function usePrivySafe() {
-  // Return a stub that allows the build to pass
   return {
     ready: true,
     authenticated: false,
-    user: null as any, // Use 'any' to avoid TypeScript issues during build
-    login: () => console.log('Login functionality disabled in build mode'),
-    logout: () => console.log('Logout functionality disabled in build mode'),
+    user: null as any,
+    login: () => alert('Connect wallet functionality coming soon!'),
+    logout: () => {},
     sendTransaction: async (txData: any) => {
-      console.log('SendTransaction functionality disabled in build mode', txData)
-      return { transactionHash: '0x0000000000000000000000000000000000000000000000000000000000000000' }
+      alert('Transaction functionality will be enabled after deployment')
+      return { transactionHash: '0x0000' }
     }
   }
 }

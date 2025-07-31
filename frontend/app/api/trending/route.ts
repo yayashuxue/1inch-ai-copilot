@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getTopTrending } from '@/lib/trendingFetcher'
 import { ChainId } from '@/lib/types'
 
-// Removed dynamic = 'force-dynamic' for static export compatibility
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = request.nextUrl
     const chainParam = searchParams.get('chain')
     const limitParam = searchParams.get('limit')
 

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { validateDraft } from '../../../lib/orderBuilder'
 import { ChainId, TradingDraft } from '../../../lib/types'
 

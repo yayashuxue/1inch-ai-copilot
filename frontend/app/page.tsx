@@ -1,9 +1,11 @@
 'use client'
 
-import dynamic from 'next/dynamic'
+export const dynamic = 'force-dynamic'
+
+import dynamicImport from 'next/dynamic'
 
 // Make the entire HomePage dynamic to avoid SSR issues with Privy
-const HomePage = dynamic(() => Promise.resolve(HomePageComponent), { 
+const HomePage = dynamicImport(() => Promise.resolve(HomePageComponent), { 
   ssr: false,
   loading: () => (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
