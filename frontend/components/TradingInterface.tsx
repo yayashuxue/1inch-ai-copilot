@@ -13,6 +13,9 @@ import {
   User,
   Copy,
   ExternalLink,
+  CheckCircle,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 import { ConnectWallet } from "./ConnectWallet";
 import { TrendingTokens } from "./TrendingTokens";
@@ -27,14 +30,16 @@ interface Message {
   timestamp: Date;
   trade?: {
     type: "swap" | "stop" | "trending";
-    status: "pending" | "success" | "error";
+    status: "pending" | "success" | "error" | "confirming" | "executing";
     details?: any;
     highlights?: Record<string, string>; // AI-selected key information
+    txHash?: string;
+    canExecute?: boolean;
   };
 }
 
 export function TradingInterface() {
-  const { user } = usePrivy();
+  const { user, sendTransaction } = usePrivy();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -103,7 +108,10 @@ What would you like to trade today?`,
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      if (result.trade?.status === "success") {
+      // Handle transaction execution if user confirms
+      if (result.trade?.status === "pending" && result.trade?.type === "swap" && result.parsed) {
+        // This is a swap ready for execution - we'll handle confirmation in the UI
+      } else if (result.trade?.status === "success") {
         toast.success("Trade executed successfully!");
       } else if (result.trade?.status === "error") {
         toast.error("Trade failed. Please try again.");
@@ -127,6 +135,117 @@ What would you like to trade today?`,
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const executeTransaction = async (messageId: string, draft: any) => {
+    if (!user?.wallet?.address || !sendTransaction) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    // Update message status to show execution in progress
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId 
+        ? { 
+            ...msg, 
+            trade: { 
+              ...msg.trade!, 
+              status: "executing" as const,
+              highlights: {
+                ...msg.trade!.highlights,
+                'Status': 'Preparing transaction...'
+              }
+            } 
+          }
+        : msg
+    ));
+
+    try {
+      // Call backend to get transaction data
+      const response = await fetch("/api/execute-transaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          draft,
+          userAddress: user.wallet.address,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to prepare transaction");
+      }
+
+      // Update status to show transaction ready
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId 
+          ? { 
+              ...msg, 
+              trade: { 
+                ...msg.trade!, 
+                status: "confirming" as const,
+                highlights: {
+                  ...msg.trade!.highlights,
+                  'Status': 'Confirm in wallet...'
+                }
+              } 
+            }
+          : msg
+      ));
+
+      // Execute transaction with Privy
+      const tx = await sendTransaction({
+        to: result.transactionData.to,
+        value: result.transactionData.value,
+        data: result.transactionData.data,
+      });
+
+      // Update with success
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId 
+          ? { 
+              ...msg, 
+              trade: { 
+                ...msg.trade!, 
+                status: "success" as const,
+                txHash: tx.transactionHash,
+                highlights: {
+                  'Status': 'Transaction successful!',
+                  'Tx Hash': `${tx.transactionHash.slice(0, 10)}...`,
+                  'From': result.swapInfo.fromAmount + ' ' + result.swapInfo.fromToken,
+                  'To': result.swapInfo.toAmount + ' ' + result.swapInfo.toToken,
+                }
+              } 
+            }
+          : msg
+      ));
+
+      toast.success("Transaction executed successfully!");
+
+    } catch (error) {
+      console.error("Transaction execution failed:", error);
+      
+      // Update with error
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId 
+          ? { 
+              ...msg, 
+              trade: { 
+                ...msg.trade!, 
+                status: "error" as const,
+                highlights: {
+                  ...msg.trade!.highlights,
+                  'Status': 'Transaction failed',
+                  'Error': error instanceof Error ? error.message : 'Unknown error'
+                }
+              } 
+            }
+          : msg
+      ));
+
+      toast.error("Transaction failed: " + (error instanceof Error ? error.message : "Unknown error"));
     }
   };
 
@@ -302,17 +421,34 @@ What would you like to trade today?`,
                           <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-gray-700/50 rounded-lg border border-gray-600">
                             <div className="flex items-center justify-between text-xs mb-2">
                               <span className="text-gray-400">Status:</span>
-                              <span
-                                className={`font-medium ${
-                                  message.trade.status === "success"
-                                    ? "text-green-400"
-                                    : message.trade.status === "error"
-                                    ? "text-red-400"
-                                    : "text-yellow-400"
-                                }`}
-                              >
-                                {message.trade.status}
-                              </span>
+                              <div className="flex items-center space-x-2">
+                                {message.trade.status === "executing" && (
+                                  <Clock className="h-3 w-3 text-yellow-400 animate-spin" />
+                                )}
+                                {message.trade.status === "confirming" && (
+                                  <AlertCircle className="h-3 w-3 text-blue-400 animate-pulse" />
+                                )}
+                                {message.trade.status === "success" && (
+                                  <CheckCircle className="h-3 w-3 text-green-400" />
+                                )}
+                                <span
+                                  className={`font-medium ${
+                                    message.trade.status === "success"
+                                      ? "text-green-400"
+                                      : message.trade.status === "error"
+                                      ? "text-red-400"
+                                      : message.trade.status === "executing" || message.trade.status === "confirming"
+                                      ? "text-blue-400"
+                                      : "text-yellow-400"
+                                  }`}
+                                >
+                                  {message.trade.status === "executing" 
+                                    ? "Executing..."
+                                    : message.trade.status === "confirming"
+                                    ? "Confirming..."
+                                    : message.trade.status}
+                                </span>
+                              </div>
                             </div>
 
                             {/* AI-Selected Key Information */}
@@ -360,8 +496,40 @@ What would you like to trade today?`,
                                     ))}
                             </div>
 
+                            {/* Execute Transaction Button */}
+                            {message.trade.canExecute && 
+                             message.trade.status === "pending" && 
+                             user?.wallet?.address && (
+                              <div className="mt-2 pt-2 border-t border-gray-600">
+                                <motion.button
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={() => executeTransaction(message.id, message.trade?.details)}
+                                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white py-2 px-4 rounded-lg font-medium transition-all text-sm flex items-center justify-center space-x-2"
+                                >
+                                  <Zap className="h-4 w-4" />
+                                  <span>Execute Transaction</span>
+                                </motion.button>
+                              </div>
+                            )}
+
+                            {/* Transaction Hash Link */}
+                            {message.trade.txHash && (
+                              <div className="mt-2 pt-2 border-t border-gray-600">
+                                <a
+                                  href={`https://basescan.org/tx/${message.trade.txHash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center space-x-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  <span>View on Basescan</span>
+                                </a>
+                              </div>
+                            )}
+
                             {/* Toggle for Raw JSON */}
-                            <details className="group">
+                            <details className="group mt-2">
                               <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 select-none">
                                 <span className="group-open:hidden">
                                   Show raw JSON
