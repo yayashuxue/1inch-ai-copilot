@@ -160,7 +160,7 @@ export interface OneInchSwapResponse extends OneInchQuoteResponse {
 // Configuration interfaces
 export interface Config {
   apiKey: string;
-  openaiKey: string;
+  anthropicKey: string;
   rpcs: Record<ChainId, string>;
   defaultChain: ChainId;
   defaultSlippage: number;

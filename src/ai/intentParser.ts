@@ -1,9 +1,9 @@
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { Draft, TradingMode, ChainId, IntentParsingError, COMMON_TOKENS } from '../types';
 
-// Initialize OpenAI client only if API key is available
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// Initialize Anthropic client only if API key is available
+const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
 }) : null;
 
 // Token symbol mapping for common variants
@@ -105,11 +105,11 @@ function parseWithRegex(text: string): Draft | null {
 }
 
 /**
- * AI-powered parsing using OpenAI for complex commands
+ * AI-powered parsing using Claude for complex commands
  */
 async function parseWithAI(text: string): Promise<Draft> {
-  if (!openai) {
-    throw new IntentParsingError('OpenAI API key not configured - cannot parse complex commands', text);
+  if (!anthropic) {
+    throw new IntentParsingError('Anthropic API key not configured - cannot parse complex commands', text);
   }
 
   const systemPrompt = `You are an expert DeFi trading assistant. Parse natural language trading commands into structured parameters.
@@ -147,25 +147,28 @@ Examples:
 "bridge 5 eth from mainnet to arbitrum" → {"mode":"swap","src":"ETH","dst":"ETH","amount":"5","chain":1,"srcChain":1,"dstChain":42161}`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: text },
-      ],
+    const message = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
       max_tokens: 500,
       temperature: 0.1,
+      system: systemPrompt,
+      messages: [
+        { 
+          role: 'user', 
+          content: text 
+        }
+      ]
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
-      throw new IntentParsingError('No response from AI', text);
+    const content = message.content[0];
+    if (content.type !== 'text' || !content.text) {
+      throw new IntentParsingError('No response from Claude', text);
     }
 
     // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new IntentParsingError('Invalid AI response format', text);
+      throw new IntentParsingError('Invalid Claude response format', text);
     }
 
     const parsed = JSON.parse(jsonMatch[0]) as Draft;

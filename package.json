@@ -27,18 +27,18 @@
   "license": "MIT",
   "dependencies": {
     "@1inch/limit-order-protocol-utils": "^4.0.1",
+    "@anthropic-ai/sdk": "^0.57.0",
     "axios": "^1.6.2",
+    "chalk": "4",
     "commander": "^11.1.0",
     "dotenv": "^16.3.1",
     "ethers": "^6.8.1",
-    "openai": "^4.20.1",
-    "chalk": "^5.3.0",
-    "ora": "^7.0.1",
-    "inquirer": "^9.2.12"
+    "inquirer": "^9.2.12",
+    "ora": "5"
   },
   "devDependencies": {
-    "@types/node": "^20.9.0",
     "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.9.0",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "@typescript-eslint/parser": "^6.11.0",
     "eslint": "^8.54.0",

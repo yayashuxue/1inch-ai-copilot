@@ -253,7 +253,7 @@ async function handleStatusCommand() {
   console.log(chalk.blue('🔍 Checking Intent Copilot Status...\n'));
   
   // Check environment variables
-  const requiredVars = ['ONEINCH_API_KEY', 'OPENAI_API_KEY'];
+  const requiredVars = ['ONEINCH_API_KEY', 'ANTHROPIC_API_KEY'];
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
   
   if (missingVars.length > 0) {
