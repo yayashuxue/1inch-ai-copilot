@@ -2,6 +2,8 @@
 
 Beautiful, modern web interface for Intent Copilot - AI-powered DeFi trading with natural language commands.
 
+**🚀 Now with Vercel deployment configuration!**
+
 ## 🚀 Features
 
 - **🎨 Modern UI**: Beautiful glassmorphism design with dark theme
@@ -97,6 +99,8 @@ pnpm start
 ### Deploy to Vercel
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/intent-copilot-mvp&project-name=intent-copilot&repository-name=intent-copilot-mvp)
+
+**Automatic deployment is configured!** The project includes `vercel.json` configuration for seamless deployment.
 
 1. Connect your GitHub repository to Vercel
 2. Add environment variables in Vercel dashboard
