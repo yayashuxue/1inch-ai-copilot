@@ -1,9 +1,16 @@
 // Chain IDs for supported networks
 export enum ChainId {
-  BASE = 8453,
   ETHEREUM = 1,
+  BASE = 8453,
   POLYGON = 137,
   ARBITRUM = 42161,
+  OPTIMISM = 10,
+  BSC = 56,
+  GNOSIS = 100,
+  AVALANCHE = 43114,
+  FANTOM = 250,
+  KLAYTN = 8217,
+  AURORA = 1313161554,
 }
 
 // Trading modes
