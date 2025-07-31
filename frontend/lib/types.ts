@@ -41,6 +41,7 @@ export interface TradingDraft {
   src?: string
   dst?: string
   amount?: string
+  reverse?: boolean  // true when amount refers to destination token
   
   // Stop order fields
   action?: 'buy' | 'sell'
@@ -86,6 +87,8 @@ export interface ValidationResult {
   valid: boolean
   error?: string
   estimatedGas?: string
+  inputAmount?: string   // Amount of input token required
+  outputAmount?: string  // Amount of output token expected
   quote?: OneInchQuote
 }
 

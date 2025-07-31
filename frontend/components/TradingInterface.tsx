@@ -29,6 +29,7 @@ interface Message {
     type: "swap" | "stop" | "trending";
     status: "pending" | "success" | "error";
     details?: any;
+    highlights?: Record<string, string>; // AI-selected key information
   };
 }
 
@@ -285,9 +286,10 @@ What would you like to trade today?`,
                                     {children}
                                   </code>
                                 ),
+                                br: () => <br />,
                               }}
                             >
-                              {message.content}
+                              {message.content.replace(/\n/g, "  \n")}
                             </ReactMarkdown>
                           </div>
                         ) : (
@@ -297,8 +299,8 @@ What would you like to trade today?`,
                         )}
 
                         {message.trade && (
-                          <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-gray-700/50 rounded-lg">
-                            <div className="flex items-center justify-between text-xs">
+                          <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-gray-700/50 rounded-lg border border-gray-600">
+                            <div className="flex items-center justify-between text-xs mb-2">
                               <span className="text-gray-400">Status:</span>
                               <span
                                 className={`font-medium ${
@@ -312,6 +314,66 @@ What would you like to trade today?`,
                                 {message.trade.status}
                               </span>
                             </div>
+
+                            {/* AI-Selected Key Information */}
+                            <div className="text-xs space-y-1 mb-2">
+                              {message.trade.highlights
+                                ? // Display AI-selected highlights
+                                  Object.entries(message.trade.highlights).map(
+                                    ([key, value]) => (
+                                      <div
+                                        key={key}
+                                        className="flex justify-between"
+                                      >
+                                        <span className="text-gray-400">
+                                          {key}:
+                                        </span>
+                                        <span className="text-white font-mono text-right">
+                                          {String(value)}
+                                        </span>
+                                      </div>
+                                    )
+                                  )
+                                : // Fallback to auto-extraction if no highlights
+                                  Object.entries(message.trade.details || {})
+                                    .filter(
+                                      ([key, value]) =>
+                                        value !== undefined &&
+                                        value !== null &&
+                                        key !== "validation"
+                                    )
+                                    .slice(0, 4)
+                                    .map(([key, value]) => (
+                                      <div
+                                        key={key}
+                                        className="flex justify-between"
+                                      >
+                                        <span className="text-gray-400 capitalize">
+                                          {key}:
+                                        </span>
+                                        <span className="text-white">
+                                          {typeof value === "object"
+                                            ? JSON.stringify(value)
+                                            : String(value)}
+                                        </span>
+                                      </div>
+                                    ))}
+                            </div>
+
+                            {/* Toggle for Raw JSON */}
+                            <details className="group">
+                              <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 select-none">
+                                <span className="group-open:hidden">
+                                  Show raw JSON
+                                </span>
+                                <span className="hidden group-open:inline">
+                                  Hide raw JSON
+                                </span>
+                              </summary>
+                              <pre className="text-xs text-gray-300 overflow-auto bg-gray-800/50 p-2 rounded border mt-2 max-h-32">
+                                {JSON.stringify(message.trade.details, null, 2)}
+                              </pre>
+                            </details>
                           </div>
                         )}
                       </div>

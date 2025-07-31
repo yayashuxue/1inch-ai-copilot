@@ -11,6 +11,7 @@ const TradingDraftSchema = z.object({
   src: z.string().optional(),
   dst: z.string().optional(),
   amount: z.string().optional(),
+  reverse: z.boolean().optional(), // true when amount refers to destination token
   chain: z.number().default(ChainId.BASE),
   slippage: z.number().optional(),
   action: z.enum(['buy', 'sell']).optional(),
@@ -66,17 +67,28 @@ export async function parse(command: string): Promise<TradingDraft | null> {
       schema: TradingDraftSchema,
       prompt: `Parse this trading command into structured data: "${command}"
       
-Context:
+CRITICAL: Pay attention to the direction and meaning of swap commands:
+
+**Amount Position Logic:**
+- "swap 1 ETH to USDC" = User wants to sell 1 ETH (amount=1, src=ETH, dst=USDC)
+- "swap ETH to 1 USDC" = User wants to buy 1 USDC (amount=1, src=ETH, dst=USDC, reverse=true)
+- "find cheapest way to swap ETH to 1 USDC" = User wants to buy 1 USDC (amount=1, src=ETH, dst=USDC, reverse=true)
+
+**Context:**
 - Default chain is Base (8453)
 - Support swap, stop order, and trending commands
 - Normalize token symbols (ethereum->ETH, bitcoin->BTC, etc.)
 - Extract amounts, prices, and conditions accurately
+- When amount follows destination token, it means "buy that amount"
+- When amount follows source token, it means "sell that amount"
 - If unsure about intent, set mode to 'unknown'
 
-Examples:
-"swap 1 eth to usdc" -> {mode: "swap", src: "ETH", dst: "USDC", amount: "1", chain: 8453}
-"sell 100 uni if price >= 15" -> {mode: "stop", action: "sell", token: "UNI", amount: "100", condition: ">=", price: 15, chain: 8453}
-"trending tokens on polygon" -> {mode: "trending", chain: 137}`,
+**Examples:**
+"swap 1 eth to usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1", chain: 8453}
+"swap eth to 1 usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1", chain: 8453, reverse: true}
+"find cheapest way to swap eth to 5 usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "5", chain: 8453, reverse: true}
+"sell 100 uni if price >= 15" → {mode: "stop", action: "sell", token: "UNI", amount: "100", condition: ">=", price: 15, chain: 8453}
+"trending tokens on polygon" → {mode: "trending", chain: 137}`,
     })
 
     return object
