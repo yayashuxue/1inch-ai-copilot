@@ -11,13 +11,14 @@ export enum ChainId {
   FANTOM = 250,
 }
 
-// Supported trading modes
+// Trading modes enum
 export enum TradingMode {
   SWAP = 'swap',
   STOP = 'stop',
   LIMIT = 'limit',
   DCA = 'dca',
   GRID = 'grid',
+  TRENDING = 'trending'
 }
 
 // Token information

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
 
-// Always use compiled JavaScript to avoid ES module conflicts
-// Run 'pnpm build' first to ensure dist/ is up to date
-require('./dist/index.js');
+// Execute the main function from compiled JS
+const { main } = require("./dist/index.js");
+main().catch(console.error);

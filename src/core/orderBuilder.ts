@@ -405,11 +405,12 @@ export async function estimateGasCost(
     
     // Rough estimates based on operation type
     const gasEstimates: Record<TradingMode, string> = {
-      [TradingMode.SWAP]: '300000',
-      [TradingMode.STOP]: '150000',
-      [TradingMode.LIMIT]: '150000',
-      [TradingMode.DCA]: '200000',
-      [TradingMode.GRID]: '250000',
+      [TradingMode.SWAP]: "150,000",
+      [TradingMode.STOP]: "200,000",
+      [TradingMode.LIMIT]: "180,000",
+      [TradingMode.DCA]: "250,000",
+      [TradingMode.GRID]: "300,000",
+      [TradingMode.TRENDING]: "0", // No gas needed for data queries
     };
     
     const gasLimit = gasEstimates[draft.mode] || '300000';

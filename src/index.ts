@@ -31,7 +31,7 @@ const config = {
 };
 
 /**
- * Setup CLI program
+ * Setup CLI program with intelligent single command
  */
 function setupCLI() {
   program
@@ -44,42 +44,29 @@ function setupCLI() {
       console.log(chalk.cyan(banner));
     });
 
-  // Swap command
+  // Main intelligent command - AI detects intent automatically
   program
-    .command('swap')
-    .description('Execute token swaps with natural language')
-    .argument('<command>', 'Natural language swap command (e.g., "swap 1 eth to usdc")')
+    .argument('[command...]', 'Natural language command (e.g., "1 eth to usdc", "sell uni at 15", "trending on base")')
     .option('-c, --chain <chain>', 'Target blockchain (base, ethereum, polygon)', 'base')
     .option('-s, --slippage <percent>', 'Maximum slippage percentage', '1.0')
     .option('-d, --deadline <minutes>', 'Transaction deadline in minutes', '20')
-    .option('--dry-run', 'Simulate the swap without executing')
-    .action(async (command: string, options: SwapOptions) => {
-      await handleSwapCommand(command, options);
+    .option('--dry-run', 'Simulate the operation without executing')
+    .action(async (command: string[], options: any) => {
+      if (command.length === 0) {
+        console.log(chalk.yellow('💡 Usage examples:'));
+        console.log(chalk.gray('  copilot "1 eth to usdc"'));
+        console.log(chalk.gray('  copilot "sell 100 uni if price >= 15"'));
+        console.log(chalk.gray('  copilot "what\'s trending on base"'));
+        console.log(chalk.gray('  copilot "exchange 0.5 weth for dai with low slippage"'));
+        console.log(chalk.gray('  copilot status'));
+        return;
+      }
+      
+      const input = command.join(' ');
+      await handleIntelligentCommand(input, options);
     });
 
-  // Stop order command
-  program
-    .command('stop')
-    .description('Create conditional stop orders triggered by price')
-    .argument('<command>', 'Natural language stop command (e.g., "sell 100 uni if price >= 12 usd")')
-    .option('-c, --chain <chain>', 'Target blockchain', 'base')
-    .option('--dry-run', 'Simulate the stop order without executing')
-    .action(async (command: string, options: StopOptions) => {
-      await handleStopCommand(command, options);
-    });
-
-  // Trending command
-  program
-    .command('trending')
-    .description('Show trending tokens by volume and price movement')
-    .option('-c, --chain <chain>', 'Target blockchain', 'base')
-    .option('-l, --limit <number>', 'Number of tokens to show', '10')
-    .option('-s, --sort-by <criteria>', 'Sort by: volume, price, marketcap, score', 'volume')
-    .action(async (options: TrendingOptions) => {
-      await handleTrendingCommand(options);
-    });
-
-  // Status command
+  // Keep status as a separate command since it's system-level
   program
     .command('status')
     .description('Check API connectivity and configuration')
@@ -91,34 +78,66 @@ function setupCLI() {
 }
 
 /**
- * Handle swap command
+ * Intelligent command handler - AI detects intent and routes accordingly
  */
-async function handleSwapCommand(command: string, options: SwapOptions) {
-  const spinner = ora('Parsing swap command...').start();
+async function handleIntelligentCommand(input: string, options: any) {
+  const spinner = ora('🤖 AI analyzing your request...').start();
   
   try {
-    // Parse the natural language command
-    const draft = await parse(command);
+    // Let AI parse and detect intent
+    const draft = await parse(input);
+    
+    spinner.stop();
+    console.log(chalk.blue(`🎯 AI detected: ${draft.mode.toUpperCase()} operation`));
+    
+    // Route to appropriate handler based on AI detection
+    switch (draft.mode) {
+      case TradingMode.SWAP:
+        await handleSwapIntent(draft, options);
+        break;
+      case TradingMode.STOP:
+        await handleStopIntent(draft, options);
+        break;
+      case TradingMode.TRENDING:
+        await handleTrendingIntent(input, options);
+        break;
+      default:
+        console.log(chalk.red(`❌ Unsupported operation: ${draft.mode}`));
+        console.log(chalk.yellow('💡 Try: "1 eth to usdc", "sell uni at 15", or "trending on base"'));
+    }
+    
+  } catch (error) {
+    spinner.fail(`Failed to process request: ${error}`);
+    console.log(chalk.red(`Error details: ${error}`));
+    
+    // Helpful suggestions on error
+    console.log(chalk.yellow('\n💡 Try these examples:'));
+    console.log(chalk.gray('  "1 eth to usdc"'));
+    console.log(chalk.gray('  "sell 100 uni when price hits 15"'));
+    console.log(chalk.gray('  "trending tokens on base"'));
+  }
+}
+
+/**
+ * Handle swap intent detected by AI
+ */
+async function handleSwapIntent(draft: any, options: any) {
+  try {
+    // Apply CLI options if provided
     draft.chain = parseChain(options.chain || 'base');
     draft.slippage = parseFloat(String(options.slippage || '1.0'));
     draft.deadline = parseInt(String(options.deadline || '20'));
     
-    spinner.text = 'Validating parameters...';
-    
     // Validate the draft
     const validation = validateDraft(draft);
     if (!validation.valid) {
-      spinner.fail('Invalid parameters');
-      validation.errors.forEach(error => console.log(chalk.red(`❌ ${error}`)));
+      console.log(chalk.red('❌ Invalid swap parameters:'));
+      validation.errors.forEach(error => console.log(chalk.red(`   ${error}`)));
       return;
     }
 
-    spinner.text = 'Estimating gas costs...';
-    
     // Show parsed parameters
-    spinner.stop();
-    console.log(chalk.green('✅ Command parsed successfully:'));
-    console.log(chalk.blue(`   Mode: ${draft.mode}`));
+    console.log(chalk.green('✅ Swap details:'));
     console.log(chalk.blue(`   From: ${draft.amount} ${draft.src}`));
     console.log(chalk.blue(`   To: ${draft.dst}`));
     console.log(chalk.blue(`   Chain: ${getChainName(draft.chain)}`));
@@ -139,42 +158,28 @@ async function handleSwapCommand(command: string, options: SwapOptions) {
     console.log(chalk.gray('3. Execute the swap transaction'));
     
   } catch (error) {
-    spinner.fail(`Failed to process swap: ${error}`);
-    console.log(chalk.red(`Error details: ${error}`));
+    console.log(chalk.red(`❌ Swap processing failed: ${error}`));
   }
 }
 
 /**
- * Handle stop order command
+ * Handle stop order intent detected by AI
  */
-async function handleStopCommand(command: string, options: StopOptions) {
-  const spinner = ora('Parsing stop order command...').start();
-  
+async function handleStopIntent(draft: any, options: any) {
   try {
-    // Parse the natural language command
-    const draft = await parse(command);
     draft.chain = parseChain(options.chain || 'base');
-    
-    if (draft.mode !== TradingMode.STOP) {
-      spinner.fail('Invalid command for stop order');
-      console.log(chalk.red('❌ Command does not appear to be a stop order'));
-      return;
-    }
-
-    spinner.text = 'Validating stop order parameters...';
     
     // Validate the draft
     const validation = validateDraft(draft);
     if (!validation.valid) {
-      spinner.fail('Invalid parameters');
-      validation.errors.forEach(error => console.log(chalk.red(`❌ ${error}`)));
+      console.log(chalk.red('❌ Invalid stop order parameters:'));
+      validation.errors.forEach(error => console.log(chalk.red(`   ${error}`)));
       return;
     }
 
-    spinner.stop();
-    console.log(chalk.green('✅ Stop order parsed successfully:'));
+    console.log(chalk.green('✅ Stop order details:'));
     console.log(chalk.blue(`   Action: ${draft.src !== 'USDC' ? 'SELL' : 'BUY'} ${draft.amount} ${draft.src !== 'USDC' ? draft.src : draft.dst}`));
-    console.log(chalk.blue(`   Trigger: Price ${draft.src !== 'USDC' ? '<=' : '>='} $${draft.trigger}`));
+    console.log(chalk.blue(`   Trigger: Price ${draft.src !== 'USDC' ? '>=' : '<='} $${draft.trigger}`));
     console.log(chalk.blue(`   Chain: ${getChainName(draft.chain)}`));
     console.log('');
 
@@ -190,23 +195,22 @@ async function handleStopCommand(command: string, options: StopOptions) {
     console.log(chalk.gray('This feature will be available in the next version.'));
     
   } catch (error) {
-    spinner.fail(`Failed to process stop order: ${error}`);
-    console.log(chalk.red(`Error details: ${error}`));
+    console.log(chalk.red(`❌ Stop order processing failed: ${error}`));
   }
 }
 
 /**
- * Handle trending command
+ * Handle trending intent detected by AI
  */
-async function handleTrendingCommand(options: TrendingOptions) {
-  const chainId = parseChain(options.chain || 'base');
-  const limit = parseInt(String(options.limit || '10'));
-  const sortBy = options.sortBy as 'volume' | 'price' | 'marketcap' | 'score' || 'volume';
+async function handleTrendingIntent(input: string, options: any) {
+  // Extract parameters from the natural language
+  const chainId = parseChain(options.chain || extractChainFromText(input));
+  const limit = parseInt(String(options.limit || extractLimitFromText(input) || '10'));
   
   const spinner = ora(`Fetching trending tokens on ${getChainName(chainId)}...`).start();
   
   try {
-    const trendingTokens = await getTopTrending(chainId, limit, sortBy);
+    const trendingTokens = await getTopTrending(chainId, limit, 'volume');
     
     spinner.stop();
     console.log(chalk.green(`🔥 Top ${limit} Trending Tokens on ${getChainName(chainId)}\n`));
@@ -235,7 +239,6 @@ async function handleTrendingCommand(options: TrendingOptions) {
     });
     
     console.log('');
-    console.log(chalk.gray(`Data sorted by: ${sortBy}`));
     console.log(chalk.gray(`Chain: ${getChainName(chainId)} (${chainId})`));
     
   } catch (error) {
@@ -311,6 +314,41 @@ function parseChain(chainName: string): ChainId {
   };
   
   return chainMap[chainName.toLowerCase()] || ChainId.BASE;
+}
+
+/**
+ * Extract chain name from natural language text
+ */
+function extractChainFromText(text: string): string {
+  const lowerCaseText = text.toLowerCase();
+  if (lowerCaseText.includes('ethereum') || lowerCaseText.includes('eth') || lowerCaseText.includes('mainnet')) {
+    return 'ethereum';
+  }
+  if (lowerCaseText.includes('base')) {
+    return 'base';
+  }
+  if (lowerCaseText.includes('polygon') || lowerCaseText.includes('matic')) {
+    return 'polygon';
+  }
+  if (lowerCaseText.includes('arbitrum') || lowerCaseText.includes('arb')) {
+    return 'arbitrum';
+  }
+  if (lowerCaseText.includes('optimism') || lowerCaseText.includes('op')) {
+    return 'optimism';
+  }
+  return 'base'; // Default
+}
+
+/**
+ * Extract limit from natural language text
+ */
+function extractLimitFromText(text: string): number | undefined {
+  const lowerCaseText = text.toLowerCase();
+  const match = lowerCaseText.match(/(\d+)\s*tokens?/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  return undefined;
 }
 
 /**

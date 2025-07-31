@@ -7,10 +7,10 @@ import { Draft, TradingMode, ChainId, IntentParsingError, COMMON_TOKENS } from '
 
 // Define the schema for parsing results
 const draftSchema = z.object({
-  mode: z.enum(['swap', 'stop', 'limit', 'dca', 'grid']),
-  src: z.string(),
-  dst: z.string(),
-  amount: z.string(),
+  mode: z.enum(['swap', 'stop', 'limit', 'dca', 'grid', 'trending']),
+  src: z.string().optional(),
+  dst: z.string().optional(),
+  amount: z.string().optional(),
   chain: z.number(),
   slippage: z.number().optional(),
   trigger: z.number().optional(),
@@ -84,34 +84,37 @@ async function parseWithAI(text: string): Promise<Draft> {
     throw new IntentParsingError('AI model not configured - check your API keys', text);
   }
 
-  const systemPrompt = `You are an expert DeFi trading assistant. Parse natural language trading commands into structured parameters.
+  const systemPrompt = `You are an expert DeFi trading assistant. Parse natural language commands and detect the user's intent.
 
-Available trading modes:
-- swap: Immediate token exchange
-- stop: Conditional order triggered by price
-- limit: Limit order at specific price
+Available modes:
+- swap: Token exchanges, trades, conversions, swaps
+- stop: Conditional orders triggered by price (sell/buy when price hits X)
+- limit: Limit orders at specific price
 - dca: Dollar cost averaging
-- grid: Grid trading
+- grid: Grid trading  
+- trending: Showing popular/trending tokens, market info
 
 Supported chains: Ethereum (1), Polygon (137), Arbitrum (42161), Optimism (10), Base (8453)
 
-Common tokens: ETH, WETH, USDC, USDT, UNI, LINK, MATIC
+INTENT DETECTION EXAMPLES:
+- "1 eth to usdc" → mode: "swap"
+- "trade 2 ethereum for usdc" → mode: "swap"  
+- "sell 100 uni if price >= 15" → mode: "stop"
+- "what's trending on base" → mode: "trending"
+- "show me hot tokens" → mode: "trending"
+- "popular tokens on polygon" → mode: "trending"
 
-Be flexible with natural language. Users might say:
-- "1 eth to usdc" 
-- "swap 1 eth to usdc"
-- "trade 1 ethereum for usdc"
-- "exchange 1 eth for usdc with best price"
-- "sell 100 uni if price >= 12 usd"
-- "buy 50 eth when price drops to 2500"
+For swap/stop orders: src, dst, amount are required
+For trending: only chain is required, src/dst/amount should be omitted
 
-Always default to Base chain (8453) unless specified otherwise.`;
+Always default to Base chain (8453) unless specified otherwise.
+Be smart about detecting intent from natural language!`;
 
   try {
     const { object } = await generateObject({
       model,
       system: systemPrompt,
-      prompt: `Parse this trading command: "${text}"`,
+      prompt: `Parse this command and detect the intent: "${text}"`,
       schema: draftSchema,
       temperature: 0.1,
     });
@@ -132,33 +135,41 @@ Always default to Base chain (8453) unless specified otherwise.`;
  * Validate and normalize parsed draft
  */
 function validateAndNormalizeDraft(draft: Draft, originalText: string): Draft {
-  // Validate required fields
-  if (!draft.mode || !draft.src || !draft.dst || !draft.amount) {
-    throw new IntentParsingError('Missing required fields in parsed command', originalText);
+  // Validate required fields based on mode
+  if (!draft.mode) {
+    throw new IntentParsingError('Missing trading mode in parsed command', originalText);
   }
-
-  // Normalize tokens
-  draft.src = normalizeToken(draft.src);
-  draft.dst = normalizeToken(draft.dst);
+  
+  // For trading operations, we need tokens and amounts
+  if (draft.mode === TradingMode.SWAP || draft.mode === TradingMode.STOP || draft.mode === TradingMode.LIMIT) {
+    if (!draft.src || !draft.dst || !draft.amount) {
+      throw new IntentParsingError('Missing required fields (src, dst, amount) for trading operation', originalText);
+    }
+    
+    // Normalize tokens
+    draft.src = normalizeToken(draft.src);
+    draft.dst = normalizeToken(draft.dst);
+    
+    // Validate amount
+    const amountNum = parseFloat(draft.amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      throw new IntentParsingError('Invalid amount specified', originalText);
+    }
+  }
 
   // Validate chain ID
   if (!Object.values(ChainId).includes(draft.chain)) {
-    draft.chain = ChainId.ETHEREUM; // Default to Ethereum
+    draft.chain = ChainId.BASE; // Default to Base
   }
 
-  // Validate amount
-  const amountNum = parseFloat(draft.amount);
-  if (isNaN(amountNum) || amountNum <= 0) {
-    throw new IntentParsingError('Invalid amount specified', originalText);
-  }
-
-  // Set reasonable defaults
-  if (!draft.slippage) {
-    draft.slippage = 1.0; // 1% default slippage
-  }
-
-  if (!draft.deadline && draft.mode === TradingMode.SWAP) {
-    draft.deadline = 20; // 20 minutes default deadline
+  // Set reasonable defaults for trading operations
+  if (draft.mode === TradingMode.SWAP) {
+    if (!draft.slippage) {
+      draft.slippage = 1.0; // 1% default slippage
+    }
+    if (!draft.deadline) {
+      draft.deadline = 20; // 20 minutes default deadline
+    }
   }
 
   return draft;
