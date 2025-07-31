@@ -8,11 +8,18 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:frontend": "cd frontend && pnpm install && pnpm build",
+    "build:all": "pnpm build && pnpm build:frontend",
     "dev": "ts-node src/index.ts",
+    "dev:frontend": "cd frontend && pnpm dev",
     "start": "node dist/index.js",
+    "start:frontend": "cd frontend && pnpm start",
     "test": "jest",
+    "test:frontend": "cd frontend && pnpm type-check && pnpm lint",
+    "test:all": "pnpm test && pnpm test:frontend",
     "lint": "eslint src/**/*.ts",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist && cd frontend && rm -rf .next",
+    "deploy:frontend": "cd frontend && ./deploy.sh"
   },
   "keywords": [
     "defi",
@@ -21,7 +28,10 @@
     "ai",
     "blockchain",
     "intents",
-    "limit-orders"
+    "limit-orders",
+    "frontend",
+    "web3",
+    "privy"
   ],
   "author": "Intent Copilot Team",
   "license": "MIT",
@@ -51,5 +61,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "workspaces": [
+    "frontend"
+  ]
 }
