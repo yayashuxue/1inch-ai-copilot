@@ -1,11 +1,11 @@
 "use client";
 
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivySafe } from "./usePrivySafe";
 import { motion } from "framer-motion";
 import { Wallet, LogOut } from "lucide-react";
 
 export function ConnectWallet() {
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { ready, authenticated, user, login, logout } = usePrivySafe();
 
   if (!ready) {
     return (

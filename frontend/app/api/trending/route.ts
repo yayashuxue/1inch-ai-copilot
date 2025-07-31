@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getTopTrending } from '@/lib/trendingFetcher'
 import { ChainId } from '@/lib/types'
 
-export const dynamic = 'force-dynamic'
+// Removed dynamic = 'force-dynamic' for static export compatibility
 
 export async function GET(request: NextRequest) {
   try {

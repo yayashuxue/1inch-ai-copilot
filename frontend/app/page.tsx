@@ -1,7 +1,19 @@
 'use client'
 
-import { useState } from 'react'
-import { usePrivy } from '@privy-io/react-auth'
+import dynamic from 'next/dynamic'
+
+// Make the entire HomePage dynamic to avoid SSR issues with Privy
+const HomePage = dynamic(() => Promise.resolve(HomePageComponent), { 
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+    </div>
+  )
+})
+
+import { useState, useEffect } from 'react'
+import { usePrivySafe } from '../components/usePrivySafe'
 import { motion } from 'framer-motion'
 import { 
   Zap, 
@@ -11,27 +23,18 @@ import {
   ArrowRight,
   Sparkles
 } from 'lucide-react'
-import dynamic from 'next/dynamic'
-
-const TradingInterface = dynamic(() => import('../components/TradingInterface').then(mod => ({ default: mod.TradingInterface })), {
-  ssr: false,
-  loading: () => (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-    </div>
-  )
-})
+import { TradingInterface } from '../components/TradingInterface'
 import { ConnectWallet } from '../components/ConnectWallet'
 import { FeatureCard } from '../components/FeatureCard'
 
-export default function HomePage() {
-  const { ready, authenticated } = usePrivy()
+function HomePageComponent() {
+  const { ready, authenticated } = usePrivySafe()
   const [isTrading, setIsTrading] = useState(false)
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
       </div>
     )
   }
@@ -41,7 +44,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
       {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-10 left-10 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse-slow"></div>
@@ -56,7 +59,7 @@ export default function HomePage() {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center space-x-2"
         >
-          <Zap className="h-8 w-8 text-primary" />
+          <Zap className="h-8 w-8 text-blue-400" />
           <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Intent Copilot
           </span>
@@ -80,7 +83,7 @@ export default function HomePage() {
             className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-xl rounded-full px-6 py-3 mb-8"
           >
             <Sparkles className="h-5 w-5 text-yellow-400" />
-            <span className="text-sm font-medium">AI-Powered DeFi Trading</span>
+            <span className="text-sm font-medium text-white">AI-Powered DeFi Trading</span>
           </motion.div>
 
           <motion.h1
@@ -163,7 +166,7 @@ export default function HomePage() {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mt-20 glass rounded-2xl p-8"
         >
-          <h3 className="text-2xl font-bold text-center mb-8">Try These Commands</h3>
+          <h3 className="text-2xl font-bold text-center mb-8 text-white">Try These Commands</h3>
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
@@ -187,3 +190,5 @@ export default function HomePage() {
     </div>
   )
 }
+
+export default HomePage

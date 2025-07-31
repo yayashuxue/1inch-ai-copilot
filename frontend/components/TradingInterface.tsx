@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivySafe } from "./usePrivySafe";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
@@ -39,7 +39,7 @@ interface Message {
 }
 
 export function TradingInterface() {
-  const { user, sendTransaction, ready } = usePrivy();
+  const { user, sendTransaction, ready } = usePrivySafe();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
