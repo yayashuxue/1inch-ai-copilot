@@ -6,10 +6,7 @@
   "framework": "nextjs",
   "regions": ["iad1", "sfo1"],
   "functions": {
-    "frontend/app/api/parse-command/route.ts": {
-      "maxDuration": 30
-    },
-    "frontend/app/api/trending/route.ts": {
+    "app/api/*/route.ts": {
       "maxDuration": 30
     }
   },
