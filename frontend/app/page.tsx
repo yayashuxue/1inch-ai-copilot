@@ -11,7 +11,16 @@ import {
   ArrowRight,
   Sparkles
 } from 'lucide-react'
-import { TradingInterface } from '../components/TradingInterface'
+import dynamic from 'next/dynamic'
+
+const TradingInterface = dynamic(() => import('../components/TradingInterface').then(mod => ({ default: mod.TradingInterface })), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+    </div>
+  )
+})
 import { ConnectWallet } from '../components/ConnectWallet'
 import { FeatureCard } from '../components/FeatureCard'
 

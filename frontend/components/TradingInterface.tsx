@@ -39,7 +39,7 @@ interface Message {
 }
 
 export function TradingInterface() {
-  const { user, sendTransaction } = usePrivy();
+  const { user, sendTransaction, ready } = usePrivy();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -139,7 +139,7 @@ What would you like to trade today?`,
   };
 
   const executeTransaction = async (messageId: string, draft: any) => {
-    if (!user?.wallet?.address || !sendTransaction) {
+    if (!ready || !user?.wallet?.address || !sendTransaction) {
       toast.error("Please connect your wallet first");
       return;
     }
@@ -499,7 +499,7 @@ What would you like to trade today?`,
                             {/* Execute Transaction Button */}
                             {message.trade.canExecute && 
                              message.trade.status === "pending" && 
-                             user?.wallet?.address && (
+                             ready && user?.wallet?.address && (
                               <div className="mt-2 pt-2 border-t border-gray-600">
                                 <motion.button
                                   whileHover={{ scale: 1.02 }}

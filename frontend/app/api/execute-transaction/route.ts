@@ -80,6 +80,15 @@ async function executeSwap(draft: TradingDraft, userAddress: string, validation:
   }
 
   try {
+    // Validate required fields
+    if (!draft.src || !draft.dst || !draft.amount) {
+      return {
+        success: false,
+        error: 'Missing required fields: src, dst, and amount are required',
+        type: 'validation_error'
+      }
+    }
+
     // Get token addresses
     const srcAddress = TOKEN_ADDRESSES[draft.chain]?.[draft.src.toUpperCase()]
     const dstAddress = TOKEN_ADDRESSES[draft.chain]?.[draft.dst.toUpperCase()]
@@ -96,7 +105,7 @@ async function executeSwap(draft: TradingDraft, userAddress: string, validation:
     const swapUrl = new URL(`${ONEINCH_API_BASE}/swap/v6.0/${draft.chain}/swap`)
     swapUrl.searchParams.set('src', srcAddress)
     swapUrl.searchParams.set('dst', dstAddress)
-    swapUrl.searchParams.set('amount', parseTokenAmount(draft.amount, 18))
+    swapUrl.searchParams.set('amount', parseTokenAmount(draft.amount!, 18))
     swapUrl.searchParams.set('from', userAddress)
     swapUrl.searchParams.set('slippage', (draft.slippage || 1).toString())
     swapUrl.searchParams.set('disableEstimate', 'true')
@@ -129,9 +138,9 @@ async function executeSwap(draft: TradingDraft, userAddress: string, validation:
         gasLimit: swapData.tx.gas,
       },
       swapInfo: {
-        fromToken: draft.src,
-        toToken: draft.dst,
-        fromAmount: draft.amount,
+        fromToken: draft.src!,
+        toToken: draft.dst!,
+        fromAmount: draft.amount!,
         toAmount: formatTokenAmount(swapData.toAmount, 18),
         protocols: swapData.protocols?.[0]?.map((p: any) => p.name) || [],
       },
