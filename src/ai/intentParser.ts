@@ -21,14 +21,20 @@ const draftSchema = z.object({
   maxTime: z.number().optional(),
 });
 
-// Initialize AI model (model-agnostic - easily switch providers)
-const model = process.env.ANTHROPIC_API_KEY 
-  ? anthropic('claude-3-5-sonnet-20241022')
-  : process.env.OPENAI_API_KEY 
-    ? null // openai('gpt-4') - uncomment and import to use
-    : process.env.GOOGLE_GENERATIVE_AI_API_KEY
-      ? null // google('gemini-1.5-pro') - uncomment and import to use
-      : null;
+// Lazy model initialization - evaluated when needed, not at import time
+function getModel() {
+  if (process.env.ANTHROPIC_API_KEY) {
+    return anthropic('claude-3-5-sonnet-20241022');
+  }
+  // Add other providers when needed:
+  // if (process.env.OPENAI_API_KEY) {
+  //   return openai('gpt-4');
+  // }
+  // if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+  //   return google('gemini-1.5-pro');
+  // }
+  return null;
+}
 
 // Token symbol mapping for common variants
 const TOKEN_ALIASES: Record<string, string> = {
@@ -60,78 +66,20 @@ const CHAIN_ALIASES: Record<string, ChainId> = {
 };
 
 /**
- * Parse natural language trading command using regex and AI
+ * Parse natural language trading command using AI (pure AI approach)
  */
 export async function parse(text: string): Promise<Draft> {
-  const normalizedText = text.toLowerCase().trim();
+  console.log(`🤖 AI parsing: "${text}"`);
   
-  // First attempt regex-based parsing for common patterns
-  const regexResult = parseWithRegex(normalizedText);
-  if (regexResult) {
-    return regexResult;
-  }
-
-  // Fallback to AI parsing for complex commands
+  // Always use AI for parsing - no regex fallback needed
   return await parseWithAI(text);
-}
-
-/**
- * Fast regex-based parsing for common patterns
- */
-function parseWithRegex(text: string): Draft | null {
-  try {
-    // Pattern: "swap X token1 to token2 [on chain] [options]"
-    const swapMatch = text.match(/swap\s+(\d+(?:\.\d+)?)\s+(\w+)\s+to\s+(\w+)(?:\s+on\s+(\w+))?/);
-    if (swapMatch) {
-      const [, amount, srcToken, dstToken, chain] = swapMatch;
-      return {
-        mode: TradingMode.SWAP,
-        src: normalizeToken(srcToken),
-        dst: normalizeToken(dstToken),
-        amount,
-        chain: chain ? normalizeChain(chain) : ChainId.ETHEREUM,
-        slippage: extractSlippage(text),
-      };
-    }
-
-    // Pattern: "sell X token if price >= Y"
-    const stopMatch = text.match(/sell\s+(\d+(?:\.\d+)?)\s+(\w+)\s+if\s+price\s*(>=|<=|>|<)\s*(\d+(?:\.\d+)?)/);
-    if (stopMatch) {
-      const [, amount, token, operator, price] = stopMatch;
-      return {
-        mode: TradingMode.STOP,
-        src: normalizeToken(token),
-        dst: 'USDC', // Default to USDC for stop orders
-        amount,
-        chain: ChainId.ETHEREUM,
-        trigger: parseFloat(price),
-      };
-    }
-
-    // Pattern: "buy X token if price <= Y"
-    const buyStopMatch = text.match(/buy\s+(\d+(?:\.\d+)?)\s+(\w+)\s+if\s+price\s*(<=|>=|<|>)\s*(\d+(?:\.\d+)?)/);
-    if (buyStopMatch) {
-      const [, amount, token, operator, price] = buyStopMatch;
-      return {
-        mode: TradingMode.STOP,
-        src: 'USDC', // Default from USDC for buy orders
-        dst: normalizeToken(token),
-        amount,
-        chain: ChainId.ETHEREUM,
-        trigger: parseFloat(price),
-      };
-    }
-
-    return null;
-  } catch (error) {
-    return null;
-  }
 }
 
 /**
  * AI-powered parsing using Vercel AI SDK (model-agnostic)
  */
 async function parseWithAI(text: string): Promise<Draft> {
+  const model = getModel();
   if (!model) {
     throw new IntentParsingError('AI model not configured - check your API keys', text);
   }
@@ -149,10 +97,15 @@ Supported chains: Ethereum (1), Polygon (137), Arbitrum (42161), Optimism (10), 
 
 Common tokens: ETH, WETH, USDC, USDT, UNI, LINK, MATIC
 
-Examples:
-"swap 1 eth to usdc" → {"mode":"swap","src":"ETH","dst":"USDC","amount":"1","chain":1}
-"sell 100 uni if price >= 12 usd" → {"mode":"stop","src":"UNI","dst":"USDC","amount":"100","chain":1,"trigger":12}
-"bridge 5 eth from mainnet to arbitrum" → {"mode":"swap","src":"ETH","dst":"ETH","amount":"5","chain":1,"srcChain":1,"dstChain":42161}`;
+Be flexible with natural language. Users might say:
+- "1 eth to usdc" 
+- "swap 1 eth to usdc"
+- "trade 1 ethereum for usdc"
+- "exchange 1 eth for usdc with best price"
+- "sell 100 uni if price >= 12 usd"
+- "buy 50 eth when price drops to 2500"
+
+Always default to Base chain (8453) unless specified otherwise.`;
 
   try {
     const { object } = await generateObject({
@@ -162,6 +115,8 @@ Examples:
       schema: draftSchema,
       temperature: 0.1,
     });
+    
+    console.log(`✅ AI parsed: ${JSON.stringify(object, null, 2)}`);
     
     // Validate and normalize the parsed result
     return validateAndNormalizeDraft(object as Draft, text);
