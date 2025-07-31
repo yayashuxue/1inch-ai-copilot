@@ -2,11 +2,51 @@
 
 > **Goal:** Turn natural‑language trading commands into fully‑formed 1inch Intents or Limit‑Order predicates, sign locally, push to 1inch APIs and stream execution status.
 
-A CLI application that leverages AI to parse natural language trading commands and execute them through the 1inch protocol using Intents, Limit Orders, and price-triggered predicates. **Now fully implemented with Base chain support!**
+A modern web application that leverages AI to parse natural language trading commands and execute them through the 1inch protocol using Intents, Limit Orders, and price-triggered predicates. **Now fully implemented with Base chain support and mobile-responsive UI!**
+
+---
+
+## 📋 TODO List
+
+### 🔄 High Priority (Next Sprint)
+
+- [ ] **Fix markdown formatting in AI assistant chat messages** - Improve readability of AI responses with proper markdown rendering
+- [ ] **Add conversation memory/context** - AI assistant should remember previous messages in the conversation
+- [ ] **Implement actual transaction initiation** - Connect to 1inch API and enable real wallet transactions
+- [ ] **Refactor into modular components** - Improve code maintainability and extensibility
+
+### 📋 Medium Priority
+
+- [ ] **Make CLI subset of webapp capabilities** - CLI should use the same core functionality as webapp
+- [ ] **Add Chainlink predicates** - Price feed integration for conditional orders
+- [ ] **Implement advanced strategies** - Grid trading, TWAP, DCA features
+
+### ✅ Completed
+
+- [x] **Mobile-responsive design** - Complete mobile optimization for all screen sizes
+- [x] **Privy wallet authentication** - Working wallet connection and environment setup
+- [x] **Web frontend development** - Beautiful React app with AI chat interface
+- [x] **Base chain integration** - Full 1inch API integration and trending tokens
 
 ---
 
 ## 🚀 Quick Start
+
+### Web Frontend (Recommended)
+
+```bash
+# Setup frontend
+cd frontend
+pnpm install
+
+# Environment setup (use root .env file)
+# Edit .env to add your PRIVY_APP_ID and API keys
+
+# Start development server
+pnpm dev
+
+# Open http://localhost:3000 in your browser
+```
 
 ### CLI Version
 
@@ -32,30 +72,20 @@ pnpm build
 ./copilot trending --chain base
 ```
 
-### Web Frontend
-
-```bash
-# Setup frontend
-cd frontend
-pnpm install
-
-# Copy environment template
-cp .env.example .env.local
-# Edit .env.local to add your PRIVY_APP_ID and API keys
-
-# Start development server
-pnpm dev
-
-# Open http://localhost:3000 in your browser
-```
-
 ---
 
 ## 📁 Project Structure
 
 ```
 intent-copilot-mvp/
-├── src/
+├── frontend/                    # React web application
+│   ├── app/                     # Next.js app directory
+│   ├── components/              # Reusable React components
+│   │   ├── TradingInterface.tsx # Main chat interface
+│   │   ├── TrendingTokens.tsx   # Trending tokens display
+│   │   └── ConnectWallet.tsx    # Wallet connection
+│   └── lib/                     # Utility libraries
+├── src/                         # CLI application
 │   ├── index.ts                 # CLI entry point with commander.js
 │   ├── ai/
 │   │   └── intentParser.ts      # Natural language → trading parameters
@@ -67,7 +97,7 @@ intent-copilot-mvp/
 │   └── types.ts                 # TypeScript definitions
 ├── dist/                        # Compiled JavaScript
 ├── copilot                      # Executable script
-├── .env.sample                  # Environment variables template
+├── .env                         # Environment variables (main config)
 ├── package.json
 └── README.md
 ```
@@ -78,27 +108,28 @@ intent-copilot-mvp/
 
 ### ✅ Implemented
 
-- **Natural Language Parsing**: Regex + AI parsing for trading commands
+- **Natural Language AI Chat**: Beautiful web interface with AI-powered trading commands
+- **Mobile-Responsive Design**: Perfect experience on all devices (phone, tablet, desktop)
 - **Base Chain Support**: Full integration with Base network (8453)
-- **CLI Interface**: Beautiful command-line interface with help and validation
+- **Wallet Integration**: Privy authentication with multi-wallet support
+- **Real-time Trending**: Live trending tokens with price data and volume metrics
+- **Multi-chain UI**: Base, Ethereum, Polygon, Arbitrum support
+- **CLI Interface**: Command-line interface for power users
 - **Swap Commands**: Parse "swap X token to Y token" commands
 - **Stop Orders**: Parse "sell X token if price >= Y" conditional orders
-- **Trending Tokens**: Fetch trending tokens by volume from 1inch API
 - **Dry Run Mode**: Test commands without executing transactions
-- **Multi-chain Support**: Base, Ethereum, Polygon, Arbitrum
-
-### ✅ Recently Completed
-
-- **Web Frontend**: Beautiful React app with Privy wallet integration
-- **AI Chat Interface**: Natural language trading commands in browser
-- **Real-time Data**: Live trending tokens and market analysis
-- **Multi-chain UI**: Base, Ethereum, Polygon, Arbitrum support
 
 ### 🔄 In Progress
 
-- **1inch Integration**: API integration ready, needs wallet connection
+- **Transaction Execution**: Connecting AI commands to real 1inch transactions
+- **Context Memory**: AI assistant remembering conversation history
+- **Markdown Formatting**: Improved chat message rendering
+
+### 📋 Planned
+
 - **Chainlink Predicates**: Price feed integration for conditional orders
-- **Transaction Execution**: Full wallet integration and signing
+- **Advanced Strategies**: Grid trading, TWAP, DCA automation
+- **Portfolio Management**: Track and manage multiple positions
 
 ---
 
@@ -237,14 +268,14 @@ DEFAULT_SLIPPAGE=1.0
 
 ## 🚧 Development Roadmap
 
-| Phase      | Feature                                    | Status        |
-| ---------- | ------------------------------------------ | ------------- |
-| ✅ Phase 1 | CLI foundation & natural language parser   | **Completed** |
-| ✅ Phase 2 | Base chain integration & trending tokens   | **Completed** |
-| ✅ Phase 3 | Web UI with Privy wallet integration       | **Completed** |
+| Phase      | Feature                                         | Status        |
+| ---------- | ----------------------------------------------- | ------------- |
+| ✅ Phase 1 | CLI foundation & natural language parser        | **Completed** |
+| ✅ Phase 2 | Base chain integration & trending tokens        | **Completed** |
+| ✅ Phase 3 | Web UI with Privy wallet integration            | **Completed** |
 | 🔄 Phase 4 | Full wallet integration & transaction execution | In Progress   |
-| 📋 Phase 5 | Chainlink predicates & stop orders         | Planned       |
-| 📋 Phase 6 | Advanced strategies (grid, TWAP, DCA)      | Planned       |
+| 📋 Phase 5 | Chainlink predicates & stop orders              | Planned       |
+| 📋 Phase 6 | Advanced strategies (grid, TWAP, DCA)           | Planned       |
 
 ---
 

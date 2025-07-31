@@ -31,9 +31,31 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    /* Prevent zoom on input focus for iOS */
+    -webkit-text-size-adjust: 100%;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+  
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Prevent bounce scrolling on iOS */
+    overscroll-behavior: none;
+    /* Optimize for mobile touch */
+    -webkit-tap-highlight-color: transparent;
+    /* Improve text rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Touch-friendly sizing for mobile */
+  @media (max-width: 640px) {
+    button, input, textarea {
+      min-height: 44px; /* iOS recommended touch target */
+    }
   }
 }
 
@@ -74,5 +96,14 @@
   
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+  
+  /* Mobile-optimized animations */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
