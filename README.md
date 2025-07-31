@@ -8,6 +8,8 @@ A CLI application that leverages AI to parse natural language trading commands a
 
 ## 🚀 Quick Start
 
+### CLI Version
+
 ```bash
 # Clone and setup
 git clone <repository-url>
@@ -28,6 +30,23 @@ pnpm build
 ./copilot swap "swap 1 eth to usdc on base" --dry-run
 ./copilot stop "sell 100 uni if price >= 12 usd" --dry-run
 ./copilot trending --chain base
+```
+
+### Web Frontend
+
+```bash
+# Setup frontend
+cd frontend
+pnpm install
+
+# Copy environment template
+cp .env.example .env.local
+# Edit .env.local to add your PRIVY_APP_ID and API keys
+
+# Start development server
+pnpm dev
+
+# Open http://localhost:3000 in your browser
 ```
 
 ---
@@ -68,11 +87,18 @@ intent-copilot-mvp/
 - **Dry Run Mode**: Test commands without executing transactions
 - **Multi-chain Support**: Base, Ethereum, Polygon, Arbitrum
 
+### ✅ Recently Completed
+
+- **Web Frontend**: Beautiful React app with Privy wallet integration
+- **AI Chat Interface**: Natural language trading commands in browser
+- **Real-time Data**: Live trending tokens and market analysis
+- **Multi-chain UI**: Base, Ethereum, Polygon, Arbitrum support
+
 ### 🔄 In Progress
 
 - **1inch Integration**: API integration ready, needs wallet connection
 - **Chainlink Predicates**: Price feed integration for conditional orders
-- **Transaction Execution**: Wallet integration and signing
+- **Transaction Execution**: Full wallet integration and signing
 
 ---
 
@@ -215,9 +241,9 @@ DEFAULT_SLIPPAGE=1.0
 | ---------- | ------------------------------------------ | ------------- |
 | ✅ Phase 1 | CLI foundation & natural language parser   | **Completed** |
 | ✅ Phase 2 | Base chain integration & trending tokens   | **Completed** |
-| 🔄 Phase 3 | Wallet integration & transaction execution | In Progress   |
-| 📋 Phase 4 | Chainlink predicates & stop orders         | Planned       |
-| 📋 Phase 5 | Web UI with Privy wallet integration       | Planned       |
+| ✅ Phase 3 | Web UI with Privy wallet integration       | **Completed** |
+| 🔄 Phase 4 | Full wallet integration & transaction execution | In Progress   |
+| 📋 Phase 5 | Chainlink predicates & stop orders         | Planned       |
 | 📋 Phase 6 | Advanced strategies (grid, TWAP, DCA)      | Planned       |
 
 ---
@@ -225,7 +251,7 @@ DEFAULT_SLIPPAGE=1.0
 ## 🧪 Testing
 
 ```bash
-# Build and test
+# Build and test CLI
 pnpm build
 pnpm test
 
@@ -236,6 +262,12 @@ pnpm test
 # Test with API keys (set in .env)
 ./copilot trending --chain base
 ./copilot status
+
+# Build and test frontend
+cd frontend
+pnpm install
+pnpm build
+pnpm dev
 ```
 
 ---
