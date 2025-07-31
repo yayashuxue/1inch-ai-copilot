@@ -134,10 +134,10 @@ intent-copilot-mvp/
 ### Natural Language Processing
 
 - **Regex Parsing**: Fast pattern matching for common commands
-- **AI Fallback**: Claude 3.5 Sonnet for complex command interpretation
+- **AI Fallback**: Model-agnostic AI with Vercel AI SDK for complex command interpretation
 - **Token Normalization**: Automatic symbol and chain name resolution
 
-> **Why Claude?** We use Anthropic's Claude 3.5 Sonnet model for its superior reasoning capabilities in parsing complex DeFi trading commands and its excellent JSON output formatting for structured data extraction.
+> **Why Vercel AI SDK?** We use Vercel's AI SDK for model-agnostic AI integration. This allows switching between Claude, GPT, Gemini, or other models without code changes. Currently optimized for Claude 3.5 Sonnet's superior DeFi reasoning capabilities.
 
 ### Blockchain Integration
 
@@ -179,7 +179,10 @@ DEFAULT_SLIPPAGE=1.0
 ### API Keys Setup
 
 1. **1inch API**: Get your API key from [1inch Developer Portal](https://portal.1inch.dev/)
-2. **Anthropic API**: Get your API key from [Anthropic Console](https://console.anthropic.com/)
+2. **AI Provider**: Choose your preferred AI provider:
+   - **Anthropic**: Get your API key from [Anthropic Console](https://console.anthropic.com/)
+   - **OpenAI**: Get your API key from [OpenAI Platform](https://platform.openai.com/)
+   - **Google**: Get your API key from [Google AI Studio](https://makersuite.google.com/)
 
 ---
 

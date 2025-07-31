@@ -1,10 +1,34 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { generateObject } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+// import { openai } from '@ai-sdk/openai';
+// import { google } from '@ai-sdk/google';
+import { z } from 'zod';
 import { Draft, TradingMode, ChainId, IntentParsingError, COMMON_TOKENS } from '../types';
 
-// Initialize Anthropic client only if API key is available
-const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-}) : null;
+// Define the schema for parsing results
+const draftSchema = z.object({
+  mode: z.enum(['swap', 'stop', 'limit', 'dca', 'grid']),
+  src: z.string(),
+  dst: z.string(),
+  amount: z.string(),
+  chain: z.number(),
+  slippage: z.number().optional(),
+  trigger: z.number().optional(),
+  deadline: z.number().optional(),
+  srcChain: z.number().optional(),
+  dstChain: z.number().optional(),
+  maxLoss: z.number().optional(),
+  maxTime: z.number().optional(),
+});
+
+// Initialize AI model (model-agnostic - easily switch providers)
+const model = process.env.ANTHROPIC_API_KEY 
+  ? anthropic('claude-3-5-sonnet-20241022')
+  : process.env.OPENAI_API_KEY 
+    ? null // openai('gpt-4') - uncomment and import to use
+    : process.env.GOOGLE_GENERATIVE_AI_API_KEY
+      ? null // google('gemini-1.5-pro') - uncomment and import to use
+      : null;
 
 // Token symbol mapping for common variants
 const TOKEN_ALIASES: Record<string, string> = {
@@ -105,11 +129,11 @@ function parseWithRegex(text: string): Draft | null {
 }
 
 /**
- * AI-powered parsing using Claude for complex commands
+ * AI-powered parsing using Vercel AI SDK (model-agnostic)
  */
 async function parseWithAI(text: string): Promise<Draft> {
-  if (!anthropic) {
-    throw new IntentParsingError('Anthropic API key not configured - cannot parse complex commands', text);
+  if (!model) {
+    throw new IntentParsingError('AI model not configured - check your API keys', text);
   }
 
   const systemPrompt = `You are an expert DeFi trading assistant. Parse natural language trading commands into structured parameters.
@@ -121,25 +145,9 @@ Available trading modes:
 - dca: Dollar cost averaging
 - grid: Grid trading
 
-Supported chains: Ethereum (1), Polygon (137), Arbitrum (42161), Optimism (10)
+Supported chains: Ethereum (1), Polygon (137), Arbitrum (42161), Optimism (10), Base (8453)
 
 Common tokens: ETH, WETH, USDC, USDT, UNI, LINK, MATIC
-
-Parse the following command and respond with ONLY a JSON object in this exact format:
-{
-  "mode": "swap|stop|limit|dca|grid",
-  "src": "SOURCE_TOKEN_SYMBOL",
-  "dst": "DESTINATION_TOKEN_SYMBOL", 
-  "amount": "AMOUNT_AS_STRING",
-  "chain": CHAIN_ID_NUMBER,
-  "slippage": OPTIONAL_SLIPPAGE_PERCENTAGE,
-  "trigger": OPTIONAL_TRIGGER_PRICE_FOR_STOPS,
-  "deadline": OPTIONAL_DEADLINE_MINUTES,
-  "srcChain": OPTIONAL_SOURCE_CHAIN_FOR_BRIDGE,
-  "dstChain": OPTIONAL_DEST_CHAIN_FOR_BRIDGE,
-  "maxLoss": OPTIONAL_MAX_LOSS_PERCENTAGE,
-  "maxTime": OPTIONAL_MAX_TIME_MINUTES
-}
 
 Examples:
 "swap 1 eth to usdc" → {"mode":"swap","src":"ETH","dst":"USDC","amount":"1","chain":1}
@@ -147,34 +155,16 @@ Examples:
 "bridge 5 eth from mainnet to arbitrum" → {"mode":"swap","src":"ETH","dst":"ETH","amount":"5","chain":1,"srcChain":1,"dstChain":42161}`;
 
   try {
-    const message = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 500,
-      temperature: 0.1,
+    const { object } = await generateObject({
+      model,
       system: systemPrompt,
-      messages: [
-        { 
-          role: 'user', 
-          content: text 
-        }
-      ]
+      prompt: `Parse this trading command: "${text}"`,
+      schema: draftSchema,
+      temperature: 0.1,
     });
-
-    const content = message.content[0];
-    if (content.type !== 'text' || !content.text) {
-      throw new IntentParsingError('No response from Claude', text);
-    }
-
-    // Extract JSON from response
-    const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new IntentParsingError('Invalid Claude response format', text);
-    }
-
-    const parsed = JSON.parse(jsonMatch[0]) as Draft;
     
     // Validate and normalize the parsed result
-    return validateAndNormalizeDraft(parsed, text);
+    return validateAndNormalizeDraft(object as Draft, text);
   } catch (error) {
     if (error instanceof IntentParsingError) {
       throw error;
