@@ -49,104 +49,116 @@ export async function POST(request: NextRequest) {
 
     switch (draft.mode) {
       case 'swap':
-        if (!userAddress) {
-          response = `I found a swap request: **${draft.amount} ${draft.src} → ${draft.dst}** on ${getChainName(draft.chain)}.
+        // Always validate the trade with real 1inch API for quotes
+        const validation = await validateDraft(draft)
+        
+        if (!validation.valid) {
+          response = `❌ **Unable to process this swap**
+
+${validation.error}
+
+Please check your parameters and try again.`
+
+          trade = {
+            type: 'swap',
+            status: 'error',
+            details: { error: validation.error },
+            highlights: {
+              'Error': validation.error,
+              'Suggestion': 'Check parameters or try different amounts'
+            }
+          }
+        } else if (!userAddress) {
+          response = `I can ${draft.reverse ? `help you buy ${draft.amount} ${draft.dst} using ${draft.src}` : `swap ${draft.amount} ${draft.src} to ${draft.dst}`} on ${getChainName(draft.chain)}. 
           
-To execute this trade, please connect your wallet first.
+To execute this trade, please connect your wallet first.`
 
-**📋 Trade Details:**
-• **From:** ${draft.amount} ${draft.src}
-• **To:** ${draft.dst}
-• **Chain:** ${getChainName(draft.chain)}
-• **Slippage:** ${draft.slippage || 1}%
-
-Once you connect your wallet, I can validate the trade and prepare it for execution.`
+          trade = {
+            type: 'swap',
+            status: 'pending',
+            details: {
+              ...draft,
+              validation
+            },
+            highlights: {
+              'Direction': draft.reverse ? `Buy ${draft.amount} ${draft.dst}` : `Sell ${draft.amount} ${draft.src}`,
+              'Chain': getChainName(draft.chain),
+              'Expected Output': validation.outputAmount ? `${validation.outputAmount} ${draft.dst}` : `${draft.amount} ${draft.dst}`,
+              'Required Input': validation.inputAmount ? `${validation.inputAmount} ${draft.src}` : `${draft.amount} ${draft.src}`,
+              'Gas Cost': validation.estimatedGas ? `${validation.estimatedGas} ETH` : 'TBD',
+              'Slippage': draft.slippage ? `${draft.slippage}%` : '1%',
+              'Note': 'Connect wallet to execute'
+            }
+          }
         } else {
-          // Validate the trade
-          const validation = await validateDraft(draft)
-          
-          if (validation.valid) {
-            response = `✅ **Trade Ready for Execution**
+          response = `✅ **Trade Ready for Execution**
 
-**📈 Swap Details:**
-• **From:** ${draft.amount} ${draft.src}
-• **To:** ${draft.dst}  
-• **Chain:** ${getChainName(draft.chain)}
-• **Estimated Gas:** ${validation.estimatedGas} ETH
-• **Slippage:** ${draft.slippage || 1}%
+I can ${draft.reverse ? `help you buy ${draft.amount} ${draft.dst} using ${draft.src}` : `swap ${draft.amount} ${draft.src} to ${draft.dst}`} on ${getChainName(draft.chain)}.
 
 Would you like me to execute this trade?`
 
-            trade = {
-              type: 'swap',
-              status: 'pending',
-              details: {
-                ...draft,
-                validation
-              }
-            }
-          } else {
-            response = `❌ **Trade Validation Failed**
-
-**Error:** ${validation.error}
-
-Please check your balance and try again. If you need help, you can ask me:
-• "What's my balance?"
-• "Show me cheaper alternatives"
-• "Try a smaller amount"`
-
-            trade = {
-              type: 'swap',
-              status: 'error',
-              details: { error: validation.error }
+          trade = {
+            type: 'swap',
+            status: 'pending',
+            details: {
+              ...draft,
+              validation
+            },
+            highlights: {
+              'Trade': draft.reverse ? `${draft.src} → ${draft.amount} ${draft.dst}` : `${draft.amount} ${draft.src} → ${draft.dst}`,
+              'Expected Output': validation.outputAmount ? `${validation.outputAmount} ${draft.dst}` : `${draft.amount} ${draft.dst}`,
+              'Required Input': validation.inputAmount ? `${validation.inputAmount} ${draft.src}` : `${draft.amount} ${draft.src}`,
+              'Gas Cost': validation.estimatedGas ? `${validation.estimatedGas} ETH` : 'TBD',
+              'Slippage': draft.slippage ? `${draft.slippage}%` : '1%'
             }
           }
         }
         break
 
       case 'stop':
-        response = `📊 **Stop Order Configured**
+        response = `I'll set up a stop order to ${draft.action} ${draft.amount} ${draft.token} when price ${draft.condition} $${draft.price} on ${getChainName(draft.chain)}.
 
-**🎯 Order Details:**
-• **Action:** ${draft.action}
-• **Amount:** ${draft.amount} ${draft.token}
-• **Trigger:** Price ${draft.condition} $${draft.price}
-• **Chain:** ${getChainName(draft.chain)}
-
-${userAddress ? '✅ Stop order is ready to be placed.' : '⚠️ Connect your wallet to place this order.'}
-
-This order will automatically execute when the trigger condition is met.`
+${userAddress ? 'Stop order is ready to be placed.' : 'Connect your wallet to place this order.'}`
 
         trade = {
           type: 'stop',
           status: userAddress ? 'pending' : 'error',
-          details: draft
+          details: draft,
+          highlights: {
+            'Order Type': `${draft.action?.toUpperCase()} order`,
+            'Amount': `${draft.amount} ${draft.token}`,
+            'Trigger': `Price ${draft.condition} $${draft.price}`,
+            'Chain': getChainName(draft.chain)
+          }
         }
         break
 
       case 'trending':
-        response = `📈 **Trending Tokens Request**
+        response = `I'll show you the trending tokens on ${getChainName(draft.chain)}. 
 
-Fetching the hottest tokens on **${getChainName(draft.chain)}**...
-
-🔄 Switch to the **Trending** tab to see:
-• 🚀 Top gainers by price
-• 💰 Highest volume tokens  
-• 📊 Market cap leaders
-• ⚡ Real-time price data
-
-The data updates automatically with the latest market information!`
+Switch to the Trending tab to see the latest data!`
 
         trade = {
           type: 'trending',
           status: 'success',
-          details: { chain: draft.chain }
+          details: { chain: draft.chain },
+          highlights: {
+            'Action': 'Fetch trending tokens',
+            'Chain': getChainName(draft.chain),
+            'Data': 'Price, volume, market cap'
+          }
         }
         break
 
       default:
-        const contextAwareResponse = generateContextAwareHelp(command, conversationHistory)
-        response = contextAwareResponse
+        response = `I understand you want to: "${command}"
+
+I can help you with:
+• Token swaps: "swap 1 ETH to USDC"
+• Stop orders: "sell 100 UNI if price >= 15"  
+• Market data: "show trending tokens"
+
+What would you like to try?`
     }
 
     return NextResponse.json({

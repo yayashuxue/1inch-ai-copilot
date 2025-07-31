@@ -1,9 +1,16 @@
 // Chain IDs for supported networks
 export enum ChainId {
-  BASE = 8453,
   ETHEREUM = 1,
+  BASE = 8453,
   POLYGON = 137,
   ARBITRUM = 42161,
+  OPTIMISM = 10,
+  BSC = 56,
+  GNOSIS = 100,
+  AVALANCHE = 43114,
+  FANTOM = 250,
+  KLAYTN = 8217,
+  AURORA = 1313161554,
 }
 
 // Trading modes
@@ -41,6 +48,7 @@ export interface TradingDraft {
   src?: string
   dst?: string
   amount?: string
+  reverse?: boolean  // true when amount refers to destination token
   
   // Stop order fields
   action?: 'buy' | 'sell'
@@ -86,6 +94,8 @@ export interface ValidationResult {
   valid: boolean
   error?: string
   estimatedGas?: string
+  inputAmount?: string   // Amount of input token required
+  outputAmount?: string  // Amount of output token expected
   quote?: OneInchQuote
 }
 
