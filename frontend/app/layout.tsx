@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Intent Copilot - AI-Powered DeFi Trading',
-  description: 'Turn natural language commands into fully-formed 1inch Intents and Limit Orders',
+  description: 'Turn natural language commands into fully-formed 1inch Intents and Limit Orders. Deployment configured!',
   keywords: ['DeFi', 'Trading', 'AI', '1inch', 'Crypto', 'Base Chain'],
   authors: [{ name: 'Intent Copilot Team' }],
   openGraph: {
