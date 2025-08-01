@@ -103,11 +103,50 @@ async function executeSwap(draft: TradingDraft, userAddress: string, validation:
       }
     }
 
+    // Calculate swap amount based on user intent
+    let swapAmount: string
+    if (draft.isOutputAmount) {
+      // User wants to receive specific amount (e.g., "get 1 USDC")
+      // Need to calculate how much input is required
+      const quoteUrl = new URL(`${ONEINCH_API_BASE}/swap/v6.0/${draft.chain}/quote`)
+      quoteUrl.searchParams.set('src', srcAddress)
+      quoteUrl.searchParams.set('dst', dstAddress)
+      // Use larger amount for better precision (100 units)
+      quoteUrl.searchParams.set('amount', parseTokenAmount('100', 18))
+      
+      const quoteResponse = await fetch(quoteUrl.toString(), {
+        headers: {
+          'Authorization': `Bearer ${API_KEY}`,
+          'Accept': 'application/json',
+        }
+      })
+      
+      if (!quoteResponse.ok) {
+        return {
+          success: false,
+          error: `Failed to get exchange rate: ${quoteResponse.status}`,
+          type: 'api_error'
+        }
+      }
+      
+      const quoteData = await quoteResponse.json()
+      
+      // Calculate exchange rate from quote (100 units)
+      const inputForOneOutput = parseFloat(quoteData.fromTokenAmount) / parseFloat(quoteData.toTokenAmount)
+      const desiredOutput = parseFloat(draft.amount!)
+      const requiredInput = desiredOutput * inputForOneOutput
+      
+      swapAmount = parseTokenAmount(requiredInput.toString(), 18)
+    } else {
+      // User wants to sell specific amount (e.g., "swap 1 ETH")
+      swapAmount = parseTokenAmount(draft.amount!, 18)
+    }
+
     // Get swap transaction data from 1inch
     const swapUrl = new URL(`${ONEINCH_API_BASE}/swap/v6.0/${draft.chain}/swap`)
     swapUrl.searchParams.set('src', srcAddress)
     swapUrl.searchParams.set('dst', dstAddress)
-    swapUrl.searchParams.set('amount', parseTokenAmount(draft.amount!, 18))
+    swapUrl.searchParams.set('amount', swapAmount)
     swapUrl.searchParams.set('from', userAddress)
     swapUrl.searchParams.set('slippage', (draft.slippage || 1).toString())
     swapUrl.searchParams.set('disableEstimate', 'true')

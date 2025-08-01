@@ -11,6 +11,7 @@ const draftSchema = z.object({
   src: z.string().optional(),
   dst: z.string().optional(),
   amount: z.string().optional(),
+  isOutputAmount: z.boolean().optional(), // true if amount refers to how much user wants to receive
   chain: z.number(),
   slippage: z.number().optional(),
   trigger: z.number().optional(),
@@ -24,7 +25,7 @@ const draftSchema = z.object({
 // Lazy model initialization - evaluated when needed, not at import time
 function getModel() {
   if (process.env.ANTHROPIC_API_KEY) {
-    return anthropic('claude-3-5-sonnet-20241022');
+    return anthropic('claude-4-sonnet');
   }
   // Add other providers when needed:
   // if (process.env.OPENAI_API_KEY) {
@@ -96,13 +97,21 @@ Available modes:
 
 Supported chains: Ethereum (1), Polygon (137), Arbitrum (42161), Optimism (10), Base (8453)
 
-INTENT DETECTION EXAMPLES:
-- "1 eth to usdc" → mode: "swap"
-- "trade 2 ethereum for usdc" → mode: "swap"  
-- "sell 100 uni if price >= 15" → mode: "stop"
-- "what's trending on base" → mode: "trending"
-- "show me hot tokens" → mode: "trending"
-- "popular tokens on polygon" → mode: "trending"
+**UNDERSTAND WHAT USER WANTS:**
+
+Look at WHERE the number appears to understand what the user means:
+- "swap 1 ETH to USDC" = User wants to sell 1 ETH (isOutputAmount=false)
+- "get 1 USDC from ETH" = User wants to receive 1 USDC (isOutputAmount=true)
+- "swap ETH to 1 USDC" = User wants to receive 1 USDC (isOutputAmount=true)
+
+EXAMPLES:
+- "1 eth to usdc" → {src: "ETH", dst: "USDC", amount: "1", isOutputAmount: false}
+- "get 1 usdc from eth" → {src: "ETH", dst: "USDC", amount: "1", isOutputAmount: true}
+- "swap eth to 1 usdc" → {src: "ETH", dst: "USDC", amount: "1", isOutputAmount: true}
+- "buy 5 usdc with eth" → {src: "ETH", dst: "USDC", amount: "5", isOutputAmount: true}
+- "sell 100 uni if price >= 15" → {mode: "stop", action: "sell", token: "UNI", amount: "100", condition: ">=", price: 15}
+- "what's trending on base" → {mode: "trending"}
+- "show me hot tokens" → {mode: "trending"}
 
 For swap/stop orders: src, dst, amount are required
 For trending: only chain is required, src/dst/amount should be omitted

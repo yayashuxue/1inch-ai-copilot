@@ -63,6 +63,7 @@ export interface Draft {
   src: string;
   dst: string;
   amount: string;
+  isOutputAmount?: boolean; // true if amount refers to how much user wants to receive
   chain: ChainId;
   trigger?: number;
   slippage?: number;

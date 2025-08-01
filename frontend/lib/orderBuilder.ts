@@ -54,14 +54,11 @@ export async function validateDraft(draft: TradingDraft): Promise<ValidationResu
     quoteUrl.searchParams.set('src', srcAddress)
     quoteUrl.searchParams.set('dst', dstAddress)
     
-    if (draft.reverse) {
-      // Reverse swap: want to buy specific amount of dst token
-      // Note: 1inch doesn't directly support "exact output" in quote API
-      // We'll estimate by using a reasonable input amount and calculating
-      const estimatedInputAmount = parseTokenAmount('0.1', 18) // Start with 0.1 ETH estimate
-      quoteUrl.searchParams.set('amount', estimatedInputAmount)
+    if (draft.isOutputAmount) {
+      // User wants specific output amount - use larger amount for better precision
+      quoteUrl.searchParams.set('amount', parseTokenAmount('100', 18))
     } else {
-      // Normal swap: selling specific amount of src token
+      // User wants to sell specific input amount
       quoteUrl.searchParams.set('amount', parseTokenAmount(draft.amount, 18))
     }
     
@@ -90,25 +87,14 @@ export async function validateDraft(draft: TradingDraft): Promise<ValidationResu
     let inputAmount: string
     let outputAmount: string
 
-    if (draft.reverse) {
-      // For reverse swaps, calculate required input based on desired output
-      const fromTokenAmount = parseFloat(quoteData.fromTokenAmount)
-      const toTokenAmount = parseFloat(quoteData.toTokenAmount)
-      
-      if (fromTokenAmount > 0 && toTokenAmount > 0) {
-        // Calculate exchange rate (how much input we get per output token)
-        const exchangeRate = fromTokenAmount / toTokenAmount
-        // Calculate required input for the desired output amount
-        const desiredOutputWei = parseTokenAmount(draft.amount, 18)
-        const desiredOutputFloat = parseFloat(desiredOutputWei) / Math.pow(10, 18)
-        const requiredInputFloat = desiredOutputFloat * exchangeRate
-        inputAmount = requiredInputFloat.toFixed(6)
-      } else {
-        inputAmount = '0.0003' // Fallback estimate
-      }
+    if (draft.isOutputAmount) {
+      // User wants specific output - calculate required input
+      const inputForOneOutput = parseFloat(quoteData.fromTokenAmount) / parseFloat(quoteData.toTokenAmount)
+      const requiredInput = parseFloat(draft.amount) * inputForOneOutput
+      inputAmount = requiredInput.toFixed(6)
       outputAmount = draft.amount
     } else {
-      // Normal swap
+      // User wants to sell specific input
       inputAmount = draft.amount
       outputAmount = formatTokenAmount(quoteData.toTokenAmount, 18)
     }
