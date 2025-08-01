@@ -1,11 +1,15 @@
 "use client";
 
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivySafe } from "./usePrivySafe";
 import { motion } from "framer-motion";
-import { Wallet, LogOut } from "lucide-react";
+import { Wallet, LogOut, ExternalLink } from "lucide-react";
 
 export function ConnectWallet() {
-  const { ready, authenticated, user, login, logout } = usePrivy();
+  const { ready, authenticated, user, login, logout } = usePrivySafe();
+
+  // Check if we're in the fallback state (Privy not configured)
+  const isPivyConfigured = process.env.NEXT_PUBLIC_PRIVY_APP_ID && 
+    process.env.NEXT_PUBLIC_PRIVY_APP_ID !== 'your_privy_app_id_here'
 
   if (!ready) {
     return (
@@ -33,6 +37,23 @@ export function ConnectWallet() {
           <span className="hidden sm:block">Disconnect</span>
         </motion.button>
       </div>
+    );
+  }
+
+  // Show different UI based on whether Privy is configured
+  if (!isPivyConfigured) {
+    return (
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={login}
+        className="flex items-center space-x-1 sm:space-x-2 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white px-3 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-all text-sm sm:text-base min-h-[36px] sm:min-h-[48px]"
+        title="Click to get Privy App ID"
+      >
+        <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5" />
+        <span className="hidden sm:block">Setup Wallet</span>
+        <span className="sm:hidden">Setup</span>
+      </motion.button>
     );
   }
 

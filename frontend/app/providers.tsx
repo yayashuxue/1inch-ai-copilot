@@ -58,6 +58,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         embeddedWallets: {
           createOnLogin: "users-without-wallets",
         },
+        loginMethods: ["wallet"],
       }}
     >
       <QueryClientProvider client={queryClient}>

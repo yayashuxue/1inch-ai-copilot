@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+export const dynamic = 'force-dynamic'
 import { parse } from '../../../lib/intentParser'
 import { executeIntent, validateDraft } from '../../../lib/orderBuilder'
 import { ChainId } from '../../../lib/types'
@@ -110,7 +112,8 @@ Would you like me to execute this trade?`
               'Required Input': validation.inputAmount ? `${validation.inputAmount} ${draft.src}` : `${draft.amount} ${draft.src}`,
               'Gas Cost': validation.estimatedGas ? `${validation.estimatedGas} ETH` : 'TBD',
               'Slippage': draft.slippage ? `${draft.slippage}%` : '1%'
-            }
+            },
+            canExecute: true
           }
         }
         break
@@ -205,6 +208,27 @@ function handleContextualResponse(command: string, history: Message[] = []): str
   
   // Handle simple confirmations
   if (['yes', 'ok', 'sure', 'execute', 'confirm', 'do it'].includes(lowerCommand)) {
+    // Check if there's a recent pending trade in the conversation
+    const recentMessages = history.slice(-5)
+    const hasPendingTrade = recentMessages.some(msg => 
+      msg.type === 'assistant' && 
+      msg.content.includes('execute this trade') || 
+      msg.content.includes('Trade Ready for Execution')
+    )
+    
+    if (hasPendingTrade) {
+      return `Perfect! I can see you want to execute the trade we just prepared. 
+
+**To execute the transaction:**
+1. 🔘 Click the green **"Execute Transaction"** button in the trade details above
+2. 📝 Review the transaction details in your wallet
+3. ✅ Confirm the transaction
+
+The transaction will be submitted to the blockchain and you'll see real-time status updates here.
+
+*Note: Make sure you have enough ETH for gas fees on the Base network.*`
+    }
+    
     return `I understand you want to proceed, but I need a bit more context. Could you please specify what action you'd like me to take?
 
 For example:
