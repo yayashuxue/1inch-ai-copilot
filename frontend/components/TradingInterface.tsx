@@ -510,7 +510,21 @@ What would you like to trade today?`,
                                   <Zap className="h-4 w-4" />
                                   <span>Execute Transaction</span>
                                 </motion.button>
+                                <div className="mt-1 text-xs text-gray-400 text-center">
+                                  Works with MetaMask, Coinbase Wallet, and other external wallets
+                                </div>
                               </div>
+                            )}
+                            
+                            {/* Show connect wallet message if not connected */}
+                            {message.trade.canExecute && 
+                             message.trade.status === "pending" && 
+                             ready && !user?.wallet?.address && (
+                                                             <div className="mt-2 pt-2 border-t border-gray-600 text-center">
+                                 <div className="text-sm text-gray-400 mb-2">
+                                   Connect MetaMask or another wallet to execute this transaction
+                                 </div>
+                               </div>
                             )}
 
                             {/* Transaction Hash Link */}
