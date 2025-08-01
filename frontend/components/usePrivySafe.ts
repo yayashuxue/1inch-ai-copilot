@@ -66,14 +66,15 @@ export function usePrivySafe() {
     return {
       ready: true,
       authenticated: false,
-      user: null as any,
+      user: null,
       login: () => {
-        console.log('Wallet connection requires proper Privy configuration')
+        // Open Privy dashboard to help user get their app ID
         window.open('https://dashboard.privy.io/', '_blank')
+        console.log('Opening Privy dashboard. Please create an app and add your App ID to .env.local')
       },
       logout: () => {},
       sendTransaction: async () => {
-        throw new Error('Wallet not connected')
+        throw new Error('Privy not configured')
       }
     }
   }
