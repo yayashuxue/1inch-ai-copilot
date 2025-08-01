@@ -56,9 +56,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         defaultChain: base,
         supportedChains: [base, mainnet, polygon, arbitrum],
         embeddedWallets: {
-          createOnLogin: "all-users",
+          createOnLogin: "users-without-wallets",
         },
-        loginMethods: ["wallet", "email", "sms"],
+        loginMethods: ["wallet"],
       }}
     >
       <QueryClientProvider client={queryClient}>

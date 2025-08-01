@@ -39,7 +39,7 @@ interface Message {
 }
 
 export function TradingInterface() {
-  const { user, sendTransaction, ready, connectWallet } = usePrivySafe();
+  const { user, sendTransaction, ready, connectWallet, wallets } = usePrivySafe();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -195,20 +195,43 @@ What would you like to trade today?`,
           : msg
       ));
 
-      // Execute transaction with Privy
+      // Execute transaction
       let tx;
-      try {
+      
+      // Check if user has external wallet connected
+      const hasExternalWallet = wallets && wallets.length > 0 && wallets.some(w => w.walletClientType === 'metamask' || w.walletClientType === 'coinbase_wallet' || w.walletClientType === 'wallet_connect');
+      
+      if (hasExternalWallet && sendTransaction) {
+        // Use Privy's sendTransaction for external wallets
         tx = await sendTransaction({
           to: result.transactionData.to,
           value: result.transactionData.value,
           data: result.transactionData.data,
         });
-      } catch (walletError: any) {
-        // If embedded wallet fails, try to prompt user to connect external wallet
-        if (walletError.message?.includes("embedded wallet")) {
-          throw new Error("Please connect an external wallet (like MetaMask) or create an embedded wallet to execute transactions");
+      } else {
+        // Fallback to direct Web3 if available
+        if (typeof window !== 'undefined' && (window as any).ethereum) {
+          const provider = (window as any).ethereum;
+          const accounts = await provider.request({ method: 'eth_accounts' });
+          
+          if (accounts.length === 0) {
+            throw new Error("Please connect your MetaMask wallet");
+          }
+          
+          const txHash = await provider.request({
+            method: 'eth_sendTransaction',
+            params: [{
+              from: accounts[0],
+              to: result.transactionData.to,
+              value: result.transactionData.value,
+              data: result.transactionData.data,
+            }],
+          });
+          
+          tx = { transactionHash: txHash };
+        } else {
+          throw new Error("Please connect a wallet (MetaMask, Coinbase Wallet, etc.) to execute transactions");
         }
-        throw walletError;
       }
 
       // Update with success
@@ -520,7 +543,7 @@ What would you like to trade today?`,
                                   <span>Execute Transaction</span>
                                 </motion.button>
                                 <div className="mt-1 text-xs text-gray-400 text-center">
-                                  Make sure you have an embedded wallet or external wallet connected
+                                  Works with MetaMask, Coinbase Wallet, and other external wallets
                                 </div>
                               </div>
                             )}
@@ -529,11 +552,11 @@ What would you like to trade today?`,
                             {message.trade.canExecute && 
                              message.trade.status === "pending" && 
                              ready && !user?.wallet?.address && (
-                              <div className="mt-2 pt-2 border-t border-gray-600 text-center">
-                                <div className="text-sm text-gray-400 mb-2">
-                                  Connect your wallet to execute this transaction
-                                </div>
-                              </div>
+                                                             <div className="mt-2 pt-2 border-t border-gray-600 text-center">
+                                 <div className="text-sm text-gray-400 mb-2">
+                                   Connect MetaMask or another wallet to execute this transaction
+                                 </div>
+                               </div>
                             )}
 
                             {/* Transaction Hash Link */}

@@ -11,7 +11,8 @@ export function usePrivySafe() {
         login: () => {},
         logout: () => {},
         sendTransaction: undefined,
-        connectWallet: () => {}
+        connectWallet: () => {},
+        wallets: []
       }
     }
     return usePrivy()
@@ -23,8 +24,9 @@ export function usePrivySafe() {
       user: null,
       login: () => {},
       logout: () => {},
-      sendTransaction: undefined,
-      connectWallet: () => {}
-    }
+              sendTransaction: undefined,
+        connectWallet: () => {},
+        wallets: []
+      }
   }
 }
