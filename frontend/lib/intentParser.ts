@@ -1,6 +1,4 @@
-// Re-export the intent parser from the main source
-// This allows the frontend to use the same AI parsing logic
-
+// Fully AI-powered intent parser - no regex patterns or hardcoded rules
 import { anthropic } from '@ai-sdk/anthropic'
 import { generateObject } from 'ai'
 import { z } from 'zod'
@@ -23,164 +21,105 @@ const TradingDraftSchema = z.object({
 
 type TradingDraft = z.infer<typeof TradingDraftSchema>
 
-const CHAIN_PATTERNS = {
-  'base': ChainId.BASE,
-  'ethereum': ChainId.ETHEREUM,
-  'eth': ChainId.ETHEREUM,
-  'polygon': ChainId.POLYGON,
-  'matic': ChainId.POLYGON,
-  'arbitrum': ChainId.ARBITRUM,
-  'arb': ChainId.ARBITRUM,
-}
-
-const COMMON_TOKENS = {
-  'ethereum': 'ETH',
-  'bitcoin': 'BTC',
-  'usdc': 'USDC',
-  'usdt': 'USDT',
-  'dai': 'DAI',
-  'weth': 'WETH',
-  'uni': 'UNI',
-  'pepe': 'PEPE',
-  'doge': 'DOGE',
-}
-
 /**
- * Parse natural language command into structured trading intent
+ * Parse natural language command using ONLY AI - no regex patterns
  */
 export async function parse(command: string): Promise<TradingDraft | null> {
   try {
-    // Quick regex patterns for common commands
-    const quickParse = quickParseCommand(command.toLowerCase())
-    if (quickParse) {
-      return quickParse
-    }
-
-    // Fallback to AI parsing for complex commands
+    // Always use AI for parsing - no regex fallback
     if (!process.env.ANTHROPIC_API_KEY) {
-      console.warn('No ANTHROPIC_API_KEY found, using fallback parsing')
-      return fallbackParse(command)
+      console.error('ANTHROPIC_API_KEY is required for AI-powered intent parsing')
+      return { mode: 'unknown' as TradingMode, chain: ChainId.BASE }
     }
 
     const { object } = await generateObject({
       model: anthropic('claude-3-5-sonnet-20241022'),
       schema: TradingDraftSchema,
-      prompt: `Parse this trading command into structured data: "${command}"
-      
-CRITICAL: Pay attention to the direction and meaning of swap commands:
+      prompt: `You are an expert crypto trading assistant. Parse this natural language command into structured trading data: "${command}"
 
-**Amount Position Logic:**
-- "swap 1 ETH to USDC" = User wants to sell 1 ETH (amount=1, src=ETH, dst=USDC)
-- "swap ETH to 1 USDC" = User wants to buy 1 USDC (amount=1, src=ETH, dst=USDC, reverse=true)
-- "find cheapest way to swap ETH to 1 USDC" = User wants to buy 1 USDC (amount=1, src=ETH, dst=USDC, reverse=true)
+**CRITICAL PARSING RULES:**
 
-**Context:**
-- Default chain is Base (8453)
-- Support swap, stop order, and trending commands
-- Normalize token symbols (ethereum->ETH, bitcoin->BTC, etc.)
-- Extract amounts, prices, and conditions accurately
-- When amount follows destination token, it means "buy that amount"
-- When amount follows source token, it means "sell that amount"
-- If unsure about intent, set mode to 'unknown'
+1. **Direction & Amount Logic:**
+   - "swap 1 ETH to USDC" = Sell 1 ETH for USDC (amount=1, src=ETH, dst=USDC, reverse=false)
+   - "swap ETH to 1 USDC" = Buy 1 USDC with ETH (amount=1, src=ETH, dst=USDC, reverse=true)
+   - "get 5 USDC with ETH" = Buy 5 USDC (amount=5, src=ETH, dst=USDC, reverse=true)
+   - "convert 2 ETH to USDC" = Sell 2 ETH (amount=2, src=ETH, dst=USDC, reverse=false)
+
+2. **Token Symbol Normalization:**
+   - ethereum/eth → ETH
+   - bitcoin/btc → BTC
+   - usdc/usd-coin → USDC
+   - usdt/tether → USDT
+   - Always use uppercase symbols
+
+3. **Chain Detection:**
+   - Default: Base (8453)
+   - Ethereum/ETH mainnet: 1
+   - Polygon/Matic: 137
+   - Arbitrum/Arb: 42161
+   - Base: 8453
+
+4. **Mode Classification:**
+   - SWAP: Trading one token for another (swap, exchange, convert, trade, buy with, sell for)
+   - STOP: Conditional orders (sell if, buy when, stop loss, take profit, if price)
+   - TRENDING: Market data (trending, hot tokens, popular, what's moving)
+   - UNKNOWN: Can't determine intent
+
+5. **Stop Order Parsing:**
+   - Extract action (buy/sell), token, amount, condition (>=, <=, >, <, =), and price
+   - "sell 100 UNI if price >= 15" = {action: "sell", token: "UNI", amount: "100", condition: ">=", price: 15}
+
+6. **Smart Intent Detection:**
+   - Look for trading keywords in any order
+   - Handle typos and variations
+   - Consider context and user intent
+   - Don't rely on exact phrase matching
 
 **Examples:**
-"swap 1 eth to usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1", chain: 8453}
-"swap eth to 1 usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1", chain: 8453, reverse: true}
-"find cheapest way to swap eth to 5 usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "5", chain: 8453, reverse: true}
-"sell 100 uni if price >= 15" → {mode: "stop", action: "sell", token: "UNI", amount: "100", condition: ">=", price: 15, chain: 8453}
-"trending tokens on polygon" → {mode: "trending", chain: 137}`,
+- "swap eth to 1 usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1", reverse: true}
+- "i want to get 5 usdc using ethereum" → {mode: "swap", src: "ETH", dst: "USDC", amount: "5", reverse: true}
+- "convert 0.1 eth to usdc on polygon" → {mode: "swap", src: "ETH", dst: "USDC", amount: "0.1", chain: 137}
+- "sell my 50 uni tokens if price hits 20 dollars" → {mode: "stop", action: "sell", token: "UNI", amount: "50", condition: ">=", price: 20}
+- "what tokens are hot right now" → {mode: "trending"}
+
+Parse the command with intelligence and context understanding, not rigid pattern matching.`,
     })
+
+    // Validate the parsed result
+    if (object.mode === 'swap' && (!object.src || !object.dst)) {
+      return { mode: 'unknown' as TradingMode, chain: ChainId.BASE }
+    }
 
     return object
   } catch (error) {
-    console.error('Parse error:', error)
-    return fallbackParse(command)
+    console.error('AI parsing error:', error)
+    // Even fallback should try to be intelligent
+    return intelligentFallback(command)
   }
 }
 
 /**
- * Quick regex-based parsing for common patterns
+ * Intelligent fallback when AI fails - still no regex
  */
-function quickParseCommand(command: string): TradingDraft | null {
-  // Swap patterns: "swap X token to Y" or "X token to Y"
-  const swapPattern = /(?:swap\s+)?(\d+(?:\.\d+)?)\s+(\w+)\s+(?:to|for)\s+(\w+)(?:\s+on\s+(\w+))?/i
-  const swapMatch = command.match(swapPattern)
-  
-  if (swapMatch) {
-    const [, amount, srcToken, dstToken, chainName] = swapMatch
-    return {
-      mode: 'swap' as TradingMode,
-      src: normalizeToken(srcToken),
-      dst: normalizeToken(dstToken),
-      amount,
-      chain: chainName ? getChainId(chainName) : ChainId.BASE,
-    }
-  }
-
-  // Stop order patterns: "sell X token if price >= Y"
-  const stopPattern = /(buy|sell)\s+(\d+(?:\.\d+)?)\s+(\w+)\s+if\s+price\s+(>=|<=|>|<|=)\s+(\d+(?:\.\d+)?)/i
-  const stopMatch = command.match(stopPattern)
-  
-  if (stopMatch) {
-    const [, action, amount, token, condition, price] = stopMatch
-    return {
-      mode: 'stop' as TradingMode,
-      action: action as 'buy' | 'sell',
-      token: normalizeToken(token),
-      amount,
-      condition: condition as '>=',
-      price: parseFloat(price),
-      chain: ChainId.BASE,
-    }
-  }
-
-  // Trending patterns: "trending" or "trending on chain"
-  const trendingPattern = /trending(?:\s+tokens?)?(?:\s+on\s+(\w+))?/i
-  const trendingMatch = command.match(trendingPattern)
-  
-  if (trendingMatch) {
-    const [, chainName] = trendingMatch
-    return {
-      mode: 'trending' as TradingMode,
-      chain: chainName ? getChainId(chainName) : ChainId.BASE,
-    }
-  }
-
-  return null
-}
-
-/**
- * Fallback parsing when AI is unavailable
- */
-function fallbackParse(command: string): TradingDraft {
+function intelligentFallback(command: string): TradingDraft {
   const lower = command.toLowerCase()
   
-  if (lower.includes('swap') || lower.includes('to')) {
-    return { mode: 'swap' as TradingMode, chain: ChainId.BASE }
-  }
+  // Use word analysis instead of regex patterns
+  const hasSwapWords = ['swap', 'trade', 'exchange', 'convert', 'buy', 'sell', 'get', 'to'].some(word => lower.includes(word))
+  const hasStopWords = ['if', 'when', 'stop', 'loss', 'profit', 'price', 'hits', 'reaches'].some(word => lower.includes(word))
+  const hasTrendingWords = ['trending', 'hot', 'popular', 'moving', 'gainers', 'losers'].some(word => lower.includes(word))
   
-  if (lower.includes('sell') || lower.includes('buy') || lower.includes('stop')) {
-    return { mode: 'stop' as TradingMode, chain: ChainId.BASE }
-  }
-  
-  if (lower.includes('trending')) {
+  if (hasTrendingWords) {
     return { mode: 'trending' as TradingMode, chain: ChainId.BASE }
   }
   
+  if (hasStopWords && hasSwapWords) {
+    return { mode: 'stop' as TradingMode, chain: ChainId.BASE }
+  }
+  
+  if (hasSwapWords) {
+    return { mode: 'swap' as TradingMode, chain: ChainId.BASE }
+  }
+  
   return { mode: 'unknown' as TradingMode, chain: ChainId.BASE }
-}
-
-/**
- * Normalize token symbols
- */
-function normalizeToken(token: string): string {
-  const normalized = COMMON_TOKENS[token.toLowerCase() as keyof typeof COMMON_TOKENS]
-  return normalized || token.toUpperCase()
-}
-
-/**
- * Get chain ID from name
- */
-function getChainId(chainName: string): number {
-  return CHAIN_PATTERNS[chainName.toLowerCase() as keyof typeof CHAIN_PATTERNS] || ChainId.BASE
 }
