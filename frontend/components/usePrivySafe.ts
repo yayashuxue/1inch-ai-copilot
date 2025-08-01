@@ -66,7 +66,9 @@ export function usePrivySafe() {
       ready: true,
       authenticated: false,
       user: null,
-      login: () => {},
+      login: () => {
+        alert('Wallet connection requires Privy configuration. Please set NEXT_PUBLIC_PRIVY_APP_ID in your .env.local file. See https://dashboard.privy.io/ to get your App ID (free for up to 1000 users).')
+      },
       logout: () => {},
       sendTransaction: undefined
     }
