@@ -63,6 +63,7 @@ export interface Draft {
   src: string;
   dst: string;
   amount: string;
+  reverse?: boolean; // true when amount refers to destination token
   chain: ChainId;
   trigger?: number;
   slippage?: number;

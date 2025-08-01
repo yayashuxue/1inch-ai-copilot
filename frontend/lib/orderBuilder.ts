@@ -56,10 +56,9 @@ export async function validateDraft(draft: TradingDraft): Promise<ValidationResu
     
     if (draft.reverse) {
       // Reverse swap: want to buy specific amount of dst token
-      // Note: 1inch doesn't directly support "exact output" in quote API
-      // We'll estimate by using a reasonable input amount and calculating
-      const estimatedInputAmount = parseTokenAmount('0.1', 18) // Start with 0.1 ETH estimate
-      quoteUrl.searchParams.set('amount', estimatedInputAmount)
+      // Use a reasonable estimation amount to get exchange rate
+      const estimationAmount = draft.src.toUpperCase() === 'ETH' ? '0.1' : '100'
+      quoteUrl.searchParams.set('amount', parseTokenAmount(estimationAmount, 18))
     } else {
       // Normal swap: selling specific amount of src token
       quoteUrl.searchParams.set('amount', parseTokenAmount(draft.amount, 18))
@@ -96,15 +95,17 @@ export async function validateDraft(draft: TradingDraft): Promise<ValidationResu
       const toTokenAmount = parseFloat(quoteData.toTokenAmount)
       
       if (fromTokenAmount > 0 && toTokenAmount > 0) {
-        // Calculate exchange rate (how much input we get per output token)
+        // Calculate exchange rate (how much input needed per unit of output)
         const exchangeRate = fromTokenAmount / toTokenAmount
         // Calculate required input for the desired output amount
-        const desiredOutputWei = parseTokenAmount(draft.amount, 18)
-        const desiredOutputFloat = parseFloat(desiredOutputWei) / Math.pow(10, 18)
-        const requiredInputFloat = desiredOutputFloat * exchangeRate
-        inputAmount = requiredInputFloat.toFixed(6)
+        const desiredOutput = parseFloat(draft.amount)
+        const requiredInput = desiredOutput * exchangeRate
+        // Add 2% buffer for slippage and price movement
+        const bufferedInput = requiredInput * 1.02
+        inputAmount = bufferedInput.toFixed(6)
       } else {
-        inputAmount = '0.0003' // Fallback estimate
+        // Fallback based on token type
+        inputAmount = draft.src.toUpperCase() === 'ETH' ? '0.0003' : '1.0'
       }
       outputAmount = draft.amount
     } else {

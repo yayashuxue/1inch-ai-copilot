@@ -11,6 +11,7 @@ const draftSchema = z.object({
   src: z.string().optional(),
   dst: z.string().optional(),
   amount: z.string().optional(),
+  reverse: z.boolean().optional(), // true when amount refers to destination token
   chain: z.number(),
   slippage: z.number().optional(),
   trigger: z.number().optional(),
@@ -96,13 +97,31 @@ Available modes:
 
 Supported chains: Ethereum (1), Polygon (137), Arbitrum (42161), Optimism (10), Base (8453)
 
+**CRITICAL PARSING RULES FOR SWAPS:**
+
+1. **Direction & Amount Logic:**
+   - "swap 1 ETH to USDC" = Sell 1 ETH for USDC (amount=1, src=ETH, dst=USDC, reverse=false)
+   - "swap ETH to 1 USDC" = Buy 1 USDC with ETH (amount=1, src=ETH, dst=USDC, reverse=true)
+   - "get 1 USDC from ETH" = Buy 1 USDC with ETH (amount=1, src=ETH, dst=USDC, reverse=true)
+   - "convert 2 ETH to USDC" = Sell 2 ETH (amount=2, src=ETH, dst=USDC, reverse=false)
+   - "buy 5 USDC with ETH" = Buy 5 USDC (amount=5, src=ETH, dst=USDC, reverse=true)
+
+2. **Key Indicators for Reverse Swaps (reverse=true):**
+   - "get X [TOKEN] from/with [TOKEN]"
+   - "buy X [TOKEN] with [TOKEN]"
+   - "I want X [TOKEN]"
+   - "swap [TOKEN] to X [TOKEN]" (amount after "to")
+   - "[TOKEN] for X [TOKEN]" (amount after "for")
+
 INTENT DETECTION EXAMPLES:
-- "1 eth to usdc" → mode: "swap"
-- "trade 2 ethereum for usdc" → mode: "swap"  
-- "sell 100 uni if price >= 15" → mode: "stop"
-- "what's trending on base" → mode: "trending"
-- "show me hot tokens" → mode: "trending"
-- "popular tokens on polygon" → mode: "trending"
+- "1 eth to usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1", reverse: false}
+- "get 1 usdc from eth" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1", reverse: true}
+- "swap eth to 1 usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1", reverse: true}
+- "buy 5 usdc with eth" → {mode: "swap", src: "ETH", dst: "USDC", amount: "5", reverse: true}
+- "trade 2 ethereum for usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "2", reverse: false}
+- "sell 100 uni if price >= 15" → {mode: "stop", action: "sell", token: "UNI", amount: "100", condition: ">=", price: 15}
+- "what's trending on base" → {mode: "trending"}
+- "show me hot tokens" → {mode: "trending"}
 
 For swap/stop orders: src, dst, amount are required
 For trending: only chain is required, src/dst/amount should be omitted
