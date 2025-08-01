@@ -62,15 +62,19 @@ export function usePrivySafe() {
     }
   } catch (error) {
     // Fallback when PrivyProvider is not available
+    console.warn('Privy not configured properly:', error)
     return {
       ready: true,
       authenticated: false,
-      user: null,
+      user: null as any,
       login: () => {
-        alert('Wallet connection requires Privy configuration. Please set NEXT_PUBLIC_PRIVY_APP_ID in your .env.local file. See https://dashboard.privy.io/ to get your App ID (free for up to 1000 users).')
+        console.log('Wallet connection requires proper Privy configuration')
+        window.open('https://dashboard.privy.io/', '_blank')
       },
       logout: () => {},
-      sendTransaction: undefined
+      sendTransaction: async () => {
+        throw new Error('Wallet not connected')
+      }
     }
   }
 }
