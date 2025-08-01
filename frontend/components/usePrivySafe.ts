@@ -10,7 +10,8 @@ export function usePrivySafe() {
         user: null,
         login: () => {},
         logout: () => {},
-        sendTransaction: undefined
+        sendTransaction: undefined,
+        connectWallet: () => {}
       }
     }
     return usePrivy()
@@ -22,7 +23,8 @@ export function usePrivySafe() {
       user: null,
       login: () => {},
       logout: () => {},
-      sendTransaction: undefined
+      sendTransaction: undefined,
+      connectWallet: () => {}
     }
   }
 }

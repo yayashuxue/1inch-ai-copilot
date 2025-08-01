@@ -39,7 +39,7 @@ interface Message {
 }
 
 export function TradingInterface() {
-  const { user, sendTransaction, ready } = usePrivySafe();
+  const { user, sendTransaction, ready, connectWallet } = usePrivySafe();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -196,11 +196,20 @@ What would you like to trade today?`,
       ));
 
       // Execute transaction with Privy
-      const tx = await sendTransaction({
-        to: result.transactionData.to,
-        value: result.transactionData.value,
-        data: result.transactionData.data,
-      });
+      let tx;
+      try {
+        tx = await sendTransaction({
+          to: result.transactionData.to,
+          value: result.transactionData.value,
+          data: result.transactionData.data,
+        });
+      } catch (walletError: any) {
+        // If embedded wallet fails, try to prompt user to connect external wallet
+        if (walletError.message?.includes("embedded wallet")) {
+          throw new Error("Please connect an external wallet (like MetaMask) or create an embedded wallet to execute transactions");
+        }
+        throw walletError;
+      }
 
       // Update with success
       setMessages(prev => prev.map(msg => 
@@ -510,6 +519,20 @@ What would you like to trade today?`,
                                   <Zap className="h-4 w-4" />
                                   <span>Execute Transaction</span>
                                 </motion.button>
+                                <div className="mt-1 text-xs text-gray-400 text-center">
+                                  Make sure you have an embedded wallet or external wallet connected
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Show connect wallet message if not connected */}
+                            {message.trade.canExecute && 
+                             message.trade.status === "pending" && 
+                             ready && !user?.wallet?.address && (
+                              <div className="mt-2 pt-2 border-t border-gray-600 text-center">
+                                <div className="text-sm text-gray-400 mb-2">
+                                  Connect your wallet to execute this transaction
+                                </div>
                               </div>
                             )}
 
