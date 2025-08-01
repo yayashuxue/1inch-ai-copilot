@@ -33,7 +33,7 @@ export async function parse(command: string): Promise<TradingDraft | null> {
     }
 
     const { object } = await generateObject({
-      model: anthropic('claude-3-5-sonnet-20241022'),
+      model: anthropic('claude-4-sonnet'),
       schema: TradingDraftSchema,
       prompt: `You are an expert crypto trading assistant. Parse this natural language command into structured trading data: "${command}"
 

@@ -25,7 +25,7 @@ const draftSchema = z.object({
 // Lazy model initialization - evaluated when needed, not at import time
 function getModel() {
   if (process.env.ANTHROPIC_API_KEY) {
-    return anthropic('claude-3-5-sonnet-20241022');
+    return anthropic('claude-4-sonnet');
   }
   // Add other providers when needed:
   // if (process.env.OPENAI_API_KEY) {
