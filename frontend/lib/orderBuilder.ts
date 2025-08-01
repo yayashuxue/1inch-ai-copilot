@@ -55,8 +55,8 @@ export async function validateDraft(draft: TradingDraft): Promise<ValidationResu
     quoteUrl.searchParams.set('dst', dstAddress)
     
     if (draft.isOutputAmount) {
-      // User wants specific output amount - use 1 unit to get exchange rate
-      quoteUrl.searchParams.set('amount', parseTokenAmount('1', 18))
+      // User wants specific output amount - use larger amount for better precision
+      quoteUrl.searchParams.set('amount', parseTokenAmount('100', 18))
     } else {
       // User wants to sell specific input amount
       quoteUrl.searchParams.set('amount', parseTokenAmount(draft.amount, 18))

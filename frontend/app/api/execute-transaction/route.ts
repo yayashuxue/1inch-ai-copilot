@@ -111,7 +111,8 @@ async function executeSwap(draft: TradingDraft, userAddress: string, validation:
       const quoteUrl = new URL(`${ONEINCH_API_BASE}/swap/v6.0/${draft.chain}/quote`)
       quoteUrl.searchParams.set('src', srcAddress)
       quoteUrl.searchParams.set('dst', dstAddress)
-      quoteUrl.searchParams.set('amount', parseTokenAmount('1', 18)) // Get rate for 1 unit
+      // Use larger amount for better precision (100 units)
+      quoteUrl.searchParams.set('amount', parseTokenAmount('100', 18))
       
       const quoteResponse = await fetch(quoteUrl.toString(), {
         headers: {
@@ -130,7 +131,7 @@ async function executeSwap(draft: TradingDraft, userAddress: string, validation:
       
       const quoteData = await quoteResponse.json()
       
-      // Simple math: if 1 input gives X output, then Y output needs Y/X input
+      // Calculate exchange rate from quote (100 units)
       const inputForOneOutput = parseFloat(quoteData.fromTokenAmount) / parseFloat(quoteData.toTokenAmount)
       const desiredOutput = parseFloat(draft.amount!)
       const requiredInput = desiredOutput * inputForOneOutput
