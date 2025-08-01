@@ -39,7 +39,7 @@ interface Message {
 }
 
 export function TradingInterface() {
-  const { user, sendTransaction, ready, connectWallet, wallets } = usePrivySafe();
+  const { user, sendTransaction, ready } = usePrivySafe();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -195,44 +195,12 @@ What would you like to trade today?`,
           : msg
       ));
 
-      // Execute transaction
-      let tx;
-      
-      // Check if user has external wallet connected
-      const hasExternalWallet = wallets && wallets.length > 0 && wallets.some(w => w.walletClientType === 'metamask' || w.walletClientType === 'coinbase_wallet' || w.walletClientType === 'wallet_connect');
-      
-      if (hasExternalWallet && sendTransaction) {
-        // Use Privy's sendTransaction for external wallets
-        tx = await sendTransaction({
-          to: result.transactionData.to,
-          value: result.transactionData.value,
-          data: result.transactionData.data,
-        });
-      } else {
-        // Fallback to direct Web3 if available
-        if (typeof window !== 'undefined' && (window as any).ethereum) {
-          const provider = (window as any).ethereum;
-          const accounts = await provider.request({ method: 'eth_accounts' });
-          
-          if (accounts.length === 0) {
-            throw new Error("Please connect your MetaMask wallet");
-          }
-          
-          const txHash = await provider.request({
-            method: 'eth_sendTransaction',
-            params: [{
-              from: accounts[0],
-              to: result.transactionData.to,
-              value: result.transactionData.value,
-              data: result.transactionData.data,
-            }],
-          });
-          
-          tx = { transactionHash: txHash };
-        } else {
-          throw new Error("Please connect a wallet (MetaMask, Coinbase Wallet, etc.) to execute transactions");
-        }
-      }
+      // Execute transaction with Privy
+      const tx = await sendTransaction({
+        to: result.transactionData.to,
+        value: result.transactionData.value,
+        data: result.transactionData.data,
+      });
 
       // Update with success
       setMessages(prev => prev.map(msg => 
