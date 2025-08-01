@@ -1,14 +1,28 @@
-// Complete fallback - no Privy imports to avoid SSR issues
+import { usePrivy } from '@privy-io/react-auth'
+
 export function usePrivySafe() {
-  return {
-    ready: true,
-    authenticated: false,
-    user: null as any,
-    login: () => alert('Connect wallet functionality coming soon!'),
-    logout: () => {},
-    sendTransaction: async (txData: any) => {
-      alert('Transaction functionality will be enabled after deployment')
-      return { transactionHash: '0x0000' }
+  try {
+    // Only try to use Privy if we're in a browser environment
+    if (typeof window === 'undefined') {
+      return {
+        ready: false,
+        authenticated: false,
+        user: null,
+        login: () => {},
+        logout: () => {},
+        sendTransaction: undefined
+      }
+    }
+    return usePrivy()
+  } catch (error) {
+    // Fallback when PrivyProvider is not available
+    return {
+      ready: true,
+      authenticated: false,
+      user: null,
+      login: () => {},
+      logout: () => {},
+      sendTransaction: undefined
     }
   }
 }
