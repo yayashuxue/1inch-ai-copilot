@@ -11,7 +11,7 @@ const draftSchema = z.object({
   src: z.string().optional(),
   dst: z.string().optional(),
   amount: z.string().optional(),
-  amountType: z.enum(['input', 'output']).optional(), // 'input' = selling this amount, 'output' = wanting this amount
+  isOutputAmount: z.boolean().optional(), // true if amount refers to how much user wants to receive
   chain: z.number(),
   slippage: z.number().optional(),
   trigger: z.number().optional(),
@@ -97,27 +97,18 @@ Available modes:
 
 Supported chains: Ethereum (1), Polygon (137), Arbitrum (42161), Optimism (10), Base (8453)
 
-**CRITICAL: UNDERSTAND USER INTENT CORRECTLY**
+**UNDERSTAND WHAT USER WANTS:**
 
-When user says "get me 1 USDC from ETH" or "swap ETH to 1 USDC", they want to RECEIVE 1 USDC as output.
-When user says "swap 1 ETH to USDC", they want to SELL 1 ETH as input.
+Look at WHERE the number appears to understand what the user means:
+- "swap 1 ETH to USDC" = User wants to sell 1 ETH (isOutputAmount=false)
+- "get 1 USDC from ETH" = User wants to receive 1 USDC (isOutputAmount=true)
+- "swap ETH to 1 USDC" = User wants to receive 1 USDC (isOutputAmount=true)
 
-PARSING RULES:
-- "get [amount] [TOKEN] from [TOKEN]" → src=[TOKEN], dst=[TOKEN], amount=[amount] (output amount)
-- "buy [amount] [TOKEN] with [TOKEN]" → src=[TOKEN], dst=[TOKEN], amount=[amount] (output amount)  
-- "swap [amount] [TOKEN] to [TOKEN]" → src=[TOKEN], dst=[TOKEN], amount=[amount] (input amount)
-- "swap [TOKEN] to [amount] [TOKEN]" → src=[TOKEN], dst=[TOKEN], amount=[amount] (output amount)
-
-The key is to look at WHERE the number appears:
-- Number BEFORE first token = input amount (selling that much)
-- Number BEFORE second token = output amount (wanting to receive that much)
-
-INTENT DETECTION EXAMPLES:
-- "1 eth to usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1"} (selling 1 ETH)
-- "get 1 usdc from eth" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1"} (wanting 1 USDC)
-- "swap eth to 1 usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "1"} (wanting 1 USDC)
-- "buy 5 usdc with eth" → {mode: "swap", src: "ETH", dst: "USDC", amount: "5"} (wanting 5 USDC)
-- "trade 2 ethereum for usdc" → {mode: "swap", src: "ETH", dst: "USDC", amount: "2"} (selling 2 ETH)
+EXAMPLES:
+- "1 eth to usdc" → {src: "ETH", dst: "USDC", amount: "1", isOutputAmount: false}
+- "get 1 usdc from eth" → {src: "ETH", dst: "USDC", amount: "1", isOutputAmount: true}
+- "swap eth to 1 usdc" → {src: "ETH", dst: "USDC", amount: "1", isOutputAmount: true}
+- "buy 5 usdc with eth" → {src: "ETH", dst: "USDC", amount: "5", isOutputAmount: true}
 - "sell 100 uni if price >= 15" → {mode: "stop", action: "sell", token: "UNI", amount: "100", condition: ">=", price: 15}
 - "what's trending on base" → {mode: "trending"}
 - "show me hot tokens" → {mode: "trending"}

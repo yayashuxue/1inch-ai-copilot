@@ -48,7 +48,7 @@ export interface TradingDraft {
   src?: string
   dst?: string
   amount?: string
-  reverse?: boolean  // true when amount refers to destination token
+  isOutputAmount?: boolean  // true if amount refers to how much user wants to receive
   
   // Stop order fields
   action?: 'buy' | 'sell'

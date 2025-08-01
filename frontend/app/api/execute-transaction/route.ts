@@ -103,15 +103,15 @@ async function executeSwap(draft: TradingDraft, userAddress: string, validation:
       }
     }
 
-    // Handle reverse swaps (buying specific amount of destination token)
+    // Calculate swap amount based on user intent
     let swapAmount: string
-    if (draft.reverse) {
-      // For reverse swaps, we need to calculate the required input amount
-      // First, get a quote to understand the exchange rate
+    if (draft.isOutputAmount) {
+      // User wants to receive specific amount (e.g., "get 1 USDC")
+      // Need to calculate how much input is required
       const quoteUrl = new URL(`${ONEINCH_API_BASE}/swap/v6.0/${draft.chain}/quote`)
       quoteUrl.searchParams.set('src', srcAddress)
       quoteUrl.searchParams.set('dst', dstAddress)
-      quoteUrl.searchParams.set('amount', parseTokenAmount('1', 18)) // Use 1 unit to get exchange rate
+      quoteUrl.searchParams.set('amount', parseTokenAmount('1', 18)) // Get rate for 1 unit
       
       const quoteResponse = await fetch(quoteUrl.toString(), {
         headers: {
@@ -130,19 +130,14 @@ async function executeSwap(draft: TradingDraft, userAddress: string, validation:
       
       const quoteData = await quoteResponse.json()
       
-      // Calculate required input amount based on desired output
-      const oneUnitInput = parseFloat(quoteData.fromTokenAmount)
-      const oneUnitOutput = parseFloat(quoteData.toTokenAmount)
-      const exchangeRate = oneUnitInput / oneUnitOutput
-      
+      // Simple math: if 1 input gives X output, then Y output needs Y/X input
+      const inputForOneOutput = parseFloat(quoteData.fromTokenAmount) / parseFloat(quoteData.toTokenAmount)
       const desiredOutput = parseFloat(draft.amount!)
-      const requiredInput = desiredOutput * exchangeRate
+      const requiredInput = desiredOutput * inputForOneOutput
       
-      // Add 2% buffer to account for slippage and price movement
-      const bufferedInput = requiredInput * 1.02
-      swapAmount = parseTokenAmount(bufferedInput.toString(), 18)
+      swapAmount = parseTokenAmount(requiredInput.toString(), 18)
     } else {
-      // Normal swap: selling specific amount of source token
+      // User wants to sell specific amount (e.g., "swap 1 ETH")
       swapAmount = parseTokenAmount(draft.amount!, 18)
     }
 
